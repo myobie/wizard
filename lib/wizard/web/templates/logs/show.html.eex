@@ -1,0 +1,10 @@
+<h1><%= @log.name %></h1>
+
+<ul>
+  <%= for post <- @posts do %>
+    <li>
+      <a href="#"><%= post.subject %></a>
+      <%= post.inserted_at %>
+    </li>
+  <% end %>
+</ul>
