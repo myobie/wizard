@@ -1,5 +1,11 @@
 # Wizard
 
+## License
+
+<https://nathan.mit-license.org>
+
+## Development
+
 To start your Phoenix server:
 
   * Install dependencies with `mix deps.get`
@@ -18,3 +24,5 @@ Ready to run in production? Please [check our deployment guides](http://www.phoe
   * Docs: https://hexdocs.pm/phoenix
   * Mailing list: http://groups.google.com/group/phoenix-talk
   * Source: https://github.com/phoenixframework/phoenix
+
+
