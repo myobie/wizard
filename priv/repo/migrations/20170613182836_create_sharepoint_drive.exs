@@ -8,13 +8,12 @@ defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Drive do
       add :url, :string, null: false
       add :type, :string, null: false
       add :delta_link, :string, null: true
-      add :authorization_id, references(:sharepoint_authorizations, on_delete: :delete_all), null: false
+      add :site_id, references(:sharepoint_sites, on_delete: :delete_all), null: false
 
       timestamps()
     end
 
     create unique_index(:sharepoint_drives, [:remote_id])
-    create index(:sharepoint_drives, [:authorization_id])
-    create unique_index(:sharepoint_drives, [:authorization_id, :remote_id], name: :sharepoint_drives_authorization_id_and_remote_id_index)
+    create index(:sharepoint_drives, [:site_id])
   end
 end

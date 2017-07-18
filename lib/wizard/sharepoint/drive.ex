@@ -2,10 +2,10 @@ defmodule Wizard.Sharepoint.Drive do
   use Ecto.Schema
   @timestamps_opts [type: :utc_datetime, usec: true]
   import Ecto.Changeset
-  alias Wizard.Sharepoint.{Authorization, Drive}
+  alias Wizard.Sharepoint.{Site, Drive}
 
   schema "sharepoint_drives" do
-    belongs_to :authorization, Authorization
+    belongs_to :site, Site
 
     field :remote_id, :string
     field :name, :string

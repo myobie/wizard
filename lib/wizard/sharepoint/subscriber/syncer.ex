@@ -2,12 +2,12 @@ defmodule Wizard.Sharepoint.Subscriber.Syncer do
   alias Wizard.Repo
   alias Ecto.Multi
   alias Wizard.Sharepoint.Api
-  alias Wizard.Sharepoint.{Authorization, Drive}
+  alias Wizard.Sharepoint.{Authorization, Drive, Site}
 
   use GenServer
   require Logger
 
-  def init(%Drive{remote_id: drive_id, delta_link: delta_link, authorization: %Authorization{access_token: access_token, url: base_url}} = drive) do
+  def init(%Drive{remote_id: drive_id, delta_link: delta_link, site: %Site{authorization: %Authorization{access_token: access_token, url: base_url}}} = drive) do
     {:ok, %{
       drive: drive,
       base_url: base_url,

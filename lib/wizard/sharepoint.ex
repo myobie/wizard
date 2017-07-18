@@ -4,7 +4,7 @@ defmodule Wizard.Sharepoint do
   alias Ecto.Multi
   alias Wizard.Repo
 
-  alias Wizard.Sharepoint.{Authorization, Drive, User}
+  alias Wizard.Sharepoint.{Authorization, Drive, Site, User}
   alias Wizard.Sharepoint.Api
 
   def authorize_url(state),
@@ -35,9 +35,15 @@ defmodule Wizard.Sharepoint do
   def list_drives_for_site(site_id, authorization),
     do: Api.Sites.drives(site_id, authorization)
 
-  def create_drive(attrs, [authorization: authorization]) do
-    Drive.changeset(%Drive{}, attrs)
+  def create_site(attrs, [authorization: authorization]) do
+    Site.changeset(%Site{}, attrs)
     |> put_assoc(:authorization, authorization)
+    |> Repo.insert()
+  end
+
+  def create_drive(attrs, [site: site]) do
+    Drive.changeset(%Drive{}, attrs)
+    |> put_assoc(:site, site)
     |> Repo.insert()
   end
 
