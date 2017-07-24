@@ -1,4 +1,6 @@
 defmodule Wizard.Sharepoint.Api.Authentication do
+  require Logger
+
   @client_id Application.fetch_env!(:wizard, :aad_client_id)
   @client_secret Application.fetch_env!(:wizard, :aad_client_secret)
   @redirect_url Application.fetch_env!(:wizard, :aad_redirect_url)
@@ -63,7 +65,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
   end
 
   defp discover_first_sharepoint_url(access_token) do
-    with {:ok, services} <- discover_services(access_token),
+    with {:ok, services} <- discover_sharepoint_services(access_token),
          {:ok, service} <- discover_first_sharepoint_service(services) do
       {:ok, service["serviceResourceId"], service["serviceEndpointUri"]}
     end
@@ -79,18 +81,24 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     end
   end
 
-  defp discover_services(token) do
+  defp is_sharepoint_service?(service) do
+    service["capability"] == "RootSite"
+  end
+
+  defp discover_sharepoint_services(token) do
     resp = Api.get(@services_url, token)
     case resp do
       %{"value" => services} ->
+        services = services |> Enum.filter(&is_sharepoint_service?/1)
+        Logger.debug inspect({:sharepoint_services, services})
         {:ok, services}
       _ ->
-        {:error, :get_services_failed}
+        {:error, :discover_sharepoint_services_failed}
     end
   end
 
   defp discover_first_sharepoint_service(services) do
-    case Enum.find(services, fn(o) -> o["capability"] == "RootSite" end) do
+    case List.first(services) do
       nil -> {:error, :discover_sharepoint_service_failed}
       service -> {:ok, service}
     end

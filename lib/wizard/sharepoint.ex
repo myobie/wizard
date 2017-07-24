@@ -1,4 +1,6 @@
 defmodule Wizard.Sharepoint do
+  require Logger
+
   import Ecto.Query, warn: false
   import Ecto.Changeset, only: [put_assoc: 3]
   alias Ecto.Multi
@@ -51,11 +53,21 @@ defmodule Wizard.Sharepoint do
     user = User.changeset(%User{}, info)
 
     Multi.new
-    |> Multi.insert(:user, user)
+    |> Multi.run(:user, fn _ ->
+      options = [
+        on_conflict: [set: User.on_conflict_options(user)],
+        conflict_target: :email
+      ]
+      Repo.insert(user, options)
+    end)
     |> Multi.run(:authorization, fn %{user: user} ->
       authorization = Authorization.changeset(%Authorization{}, info)
                       |> put_assoc(:user, user)
-      Repo.insert(authorization)
+      options = [
+        on_conflict: [set: Authorization.on_conflict_options(authorization)],
+        conflict_target: [:resource_id, :user_id]
+      ]
+      Repo.insert(authorization, options)
     end)
   end
 end

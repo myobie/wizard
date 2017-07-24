@@ -30,4 +30,10 @@ defmodule Wizard.Sharepoint.Authorization do
     |> cast(attrs, [:access_token, :refresh_token])
     |> validate_required([:access_token, :refresh_token])
   end
+
+  def on_conflict_options(%Ecto.Changeset{} = changeset) do
+    {_, access_token} = changeset |> fetch_field(:access_token)
+    {_, refresh_token} = changeset |> fetch_field(:refresh_token)
+    [access_token: access_token, refresh_token: refresh_token]
+  end
 end
