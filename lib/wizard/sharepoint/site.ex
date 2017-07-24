@@ -3,7 +3,7 @@ defmodule Wizard.Sharepoint.Site do
   import Ecto.Changeset
   alias Wizard.Sharepoint.{Authorization, Site}
 
-  schema "sites" do
+  schema "sharepoint_sites" do
     belongs_to :authorization, Authorization
 
     field :description, :string

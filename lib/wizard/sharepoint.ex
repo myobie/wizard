@@ -6,8 +6,7 @@ defmodule Wizard.Sharepoint do
   alias Ecto.Multi
   alias Wizard.Repo
 
-  alias Wizard.Sharepoint.{Authorization, Drive, Site, User}
-  alias Wizard.Sharepoint.Api
+  alias Wizard.Sharepoint.{Api, Authorization, Drive, Site, User}
 
   def authorize_url(state),
     do: Api.Authentication.authorize_url(state)
