@@ -17,3 +17,5 @@ config :wizard, Wizard.Repo,
   database: "wizard_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+import_config "test.secret.exs"
