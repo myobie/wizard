@@ -1,8 +1,6 @@
 defmodule Wizard.Sharepoint.Drive do
-  use Ecto.Schema
-  @timestamps_opts [type: :utc_datetime, usec: true]
-  import Ecto.Changeset
-  alias Wizard.Sharepoint.{Site, Drive}
+  use Wizard.Schema
+  alias Wizard.Sharepoint.{Drive, Site}
 
   schema "sharepoint_drives" do
     belongs_to :site, Site
@@ -21,8 +19,8 @@ defmodule Wizard.Sharepoint.Drive do
     drive
     |> cast(attrs, [:remote_id, :name, :url, :type, :delta_link])
     |> validate_required([:remote_id, :name, :url, :type])
-    |> foreign_key_constraint(:authorization_id)
-    |> unique_constraint(:authorization_id, name: :sharepoint_drives_authorization_id_and_remote_id_index)
+    |> foreign_key_constraint(:site_id)
+    |> unique_constraint(:remote_id)
   end
 
   @doc false

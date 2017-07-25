@@ -1,7 +1,5 @@
 defmodule Wizard.Sharepoint.Item do
-  use Ecto.Schema
-  @timestamps_opts [type: :utc_datetime, usec: true]
-  import Ecto.Changeset
+  use Wizard.Schema
   alias Wizard.Sharepoint.{Drive, Item}
 
   schema "sharepoint_items" do
@@ -26,5 +24,6 @@ defmodule Wizard.Sharepoint.Item do
     |> validate_required([:remote_id, :name, :type, :last_modified_at, :size, :url, :full_path])
     |> foreign_key_constraint(:drive_id)
     |> foreign_key_constraint(:parent_id)
+    |> unique_constraint(:remote_id, name: :sharepoint_items_remote_id_and_type_index)
   end
 end

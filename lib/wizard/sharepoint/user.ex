@@ -1,7 +1,5 @@
 defmodule Wizard.Sharepoint.User do
-  use Ecto.Schema
-  @timestamps_opts [type: :utc_datetime, usec: true]
-  import Ecto.Changeset
+  use Wizard.Schema
   alias Wizard.Sharepoint.{Authorization, User}
 
   schema "users" do
@@ -21,7 +19,8 @@ defmodule Wizard.Sharepoint.User do
     |> unique_constraint(:email)
   end
 
-  def on_conflict_options(%Ecto.Changeset{} = changeset) do
+  @doc false
+  def on_conflict_options(%Changeset{} = changeset) do
     {_, name} = changeset |> fetch_field(:name)
     [name: name]
   end
