@@ -3,7 +3,7 @@ defmodule Wizard.Sharepoint.Api.Sites do
 
   def search(query, authorization) do
     params = URI.encode_query(%{search: query})
-    uri = URI.parse("#{authorization.url}/v2.0/sites")
+    uri = URI.parse("#{site.url}/v2.0/sites")
     url = to_string(%{uri | query: params})
 
     resp = Api.get(url, authorization.access_token)
@@ -17,8 +17,8 @@ defmodule Wizard.Sharepoint.Api.Sites do
     } end)
   end
 
-  def drives(site_id, authorization) do
-    url = "#{authorization.url}/v2.0/sites/#{site_id}/drives"
+  def drives(site, authorization) do
+    url = "#{site.url}/v2.0/sites/#{site.id}/drives"
 
     resp = Api.get(url, authorization.access_token)
 

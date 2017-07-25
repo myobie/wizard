@@ -11,17 +11,20 @@ defmodule Wizard.Sharepoint do
   def authorize_url(state),
     do: Api.Authentication.authorize_url(state)
 
-  def authorize_first_sharepoint(code),
-    do: Api.Authentication.authorize_first_sharepoint(code)
+  def authorize_all_sharepoint_sites(code),
+    do: Api.Authentication.authorize_all_sharepoint_sites(code)
 
-  def create_user_and_authorization(info) do
-    new_user_and_authorization(info)
+  def create_user_and_sites_and_authorizations(user, sites) do
+    new_user_and_sites_and_authorizations(user, sites)
     |> Repo.transaction()
   end
 
-  def reauthorize(authorization) do
-    %{resource_id: resource_id, refresh_token: old_refresh_token} = authorization
-    case Api.Authentication.reauthorize_sharepoint(resource_id, old_refresh_token) do
+  def reauthorize(%Authorization{} = authorization) do
+    %{site: site, refresh_token: old_refresh_token} =
+      authorization =
+        Repo.preload(authorization, :site)
+
+    case Api.Authentication.reauthorize_sharepoint(site.remote_id, old_refresh_token) do
       {:ok, access_token, refresh_token} ->
         Authorization.refresh_changeset(authorization, %{access_token: access_token, refresh_token: refresh_token})
         |> Repo.update()
@@ -33,8 +36,11 @@ defmodule Wizard.Sharepoint do
   def search_sites(query, authorization),
     do: Api.Sites.search(query, authorization)
 
-  def list_drives_for_site(site_id, authorization),
-    do: Api.Sites.drives(site_id, authorization)
+  def list_drives_for_site(authorization) do
+    %{site: site} = authorization = Repo.preload(authorization, :site)
+
+    Api.Sites.drives(site, authorization)
+  end
 
   def create_site(attrs, [authorization: authorization]) do
     Site.changeset(%Site{}, attrs)
