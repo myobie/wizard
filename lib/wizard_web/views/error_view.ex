@@ -1,5 +1,5 @@
-defmodule Wizard.Web.ErrorView do
-  use Wizard.Web, :view
+defmodule WizardWeb.ErrorView do
+  use WizardWeb, :view
 
   def render("404.html", _assigns) do
     "Page not found"

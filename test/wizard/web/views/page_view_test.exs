@@ -1,3 +1,3 @@
-defmodule Wizard.Web.PageViewTest do
-  use Wizard.Web.ConnCase, async: true
+defmodule WizardWeb.PageViewTest do
+  use WizardWeb.ConnCase, async: true
 end

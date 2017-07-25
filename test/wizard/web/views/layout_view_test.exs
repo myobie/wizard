@@ -1,3 +1,3 @@
-defmodule Wizard.Web.LayoutViewTest do
-  use Wizard.Web.ConnCase, async: true
+defmodule WizardWeb.LayoutViewTest do
+  use WizardWeb.ConnCase, async: true
 end

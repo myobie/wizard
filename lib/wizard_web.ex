@@ -1,12 +1,12 @@
-defmodule Wizard.Web do
+defmodule WizardWeb do
   @moduledoc """
   A module that keeps using definitions for controllers,
   views and so on.
 
   This can be used in your application as:
 
-      use Wizard.Web, :controller
-      use Wizard.Web, :view
+      use WizardWeb, :controller
+      use WizardWeb, :view
 
   The definitions below will be executed for every view,
   controller, etc, so keep them short and clean, focused
@@ -18,17 +18,17 @@ defmodule Wizard.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: Wizard.Web
+      use Phoenix.Controller, namespace: WizardWeb
       import Plug.Conn
-      import Wizard.Web.Router.Helpers
-      import Wizard.Web.Gettext
+      import WizardWeb.Router.Helpers
+      import WizardWeb.Gettext
     end
   end
 
   def view do
     quote do
-      use Phoenix.View, root: "lib/wizard/web/templates",
-                        namespace: Wizard.Web
+      use Phoenix.View, root: "lib/wizard_web/templates",
+                        namespace: WizardWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
@@ -36,9 +36,9 @@ defmodule Wizard.Web do
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
 
-      import Wizard.Web.Router.Helpers
-      import Wizard.Web.ErrorHelpers
-      import Wizard.Web.Gettext
+      import WizardWeb.Router.Helpers
+      import WizardWeb.ErrorHelpers
+      import WizardWeb.Gettext
     end
   end
 
@@ -53,7 +53,7 @@ defmodule Wizard.Web do
   def channel do
     quote do
       use Phoenix.Channel
-      import Wizard.Web.Gettext
+      import WizardWeb.Gettext
     end
   end
 

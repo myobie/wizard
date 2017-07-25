@@ -1,5 +1,5 @@
-defmodule Wizard.Web.Router do
-  use Wizard.Web, :router
+defmodule WizardWeb.Router do
+  use WizardWeb, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -17,7 +17,7 @@ defmodule Wizard.Web.Router do
     plug :fetch_session
   end
 
-  scope "/", Wizard.Web do
+  scope "/", WizardWeb do
     pipe_through :browser # Use the default browser stack
 
     get "/", PageController, :index
@@ -25,13 +25,13 @@ defmodule Wizard.Web.Router do
     get "/signin", AuthenticationController, :signin
   end
 
-  scope "/notifications", Wizard.Web do
+  scope "/notifications", WizardWeb do
     pipe_through :api
 
     post "/callback", NotificationController, :callback
   end
 
-  scope "/authentication", Wizard.Web do
+  scope "/authentication", WizardWeb do
     pipe_through :aad_auth
 
     post "/callback", AuthenticationController, :callback
