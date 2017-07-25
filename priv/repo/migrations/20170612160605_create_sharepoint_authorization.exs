@@ -6,7 +6,7 @@ defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Authorization do
       add :access_token, :string, null: false, size: 2048
       add :refresh_token, :string, null: false, size: 2048
       add :user_id, references(:users, on_delete: :delete_all), null: false
-      add :site_id, references(:sites, on_delete: :delete_all), null: false
+      add :site_id, references(:sharepoint_sites, on_delete: :delete_all), null: false
 
       timestamps(type: :utc_datetime)
     end

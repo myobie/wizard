@@ -1,4 +1,4 @@
-defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.User do
+defmodule Wizard.Repo.Migrations.CreateWizard.User do
   use Ecto.Migration
 
   def change do
