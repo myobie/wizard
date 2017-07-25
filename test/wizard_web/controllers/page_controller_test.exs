@@ -1,5 +1,5 @@
-defmodule Wizard.Web.PageControllerTest do
-  use Wizard.Web.ConnCase
+defmodule WizardWeb.PageControllerTest do
+  use WizardWeb.ConnCase
 
   test "GET /", %{conn: conn} do
     conn = get conn, "/"

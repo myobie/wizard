@@ -1,5 +1,5 @@
-defmodule Wizard.Web.AuthenticationController do
-  use Wizard.Web, :controller
+defmodule WizardWeb.AuthenticationController do
+  use WizardWeb, :controller
   alias Wizard.Sharepoint
 
   def signin(conn, _params) do

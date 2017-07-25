@@ -1,7 +1,7 @@
-defmodule Wizard.Web.Endpoint do
+defmodule WizardWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :wizard
 
-  socket "/socket", Wizard.Web.UserSocket
+  socket "/socket", WizardWeb.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -38,7 +38,7 @@ defmodule Wizard.Web.Endpoint do
     key: "_wizard_key",
     signing_salt: "oQxVxJ57"
 
-  plug Wizard.Web.Router
+  plug WizardWeb.Router
 
   @doc """
   Dynamically loads configuration from the system environment

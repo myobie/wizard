@@ -1,4 +1,4 @@
-defmodule Wizard.Web.ChannelCase do
+defmodule WizardWeb.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -21,7 +21,7 @@ defmodule Wizard.Web.ChannelCase do
       use Phoenix.ChannelTest
 
       # The default endpoint for testing
-      @endpoint Wizard.Web.Endpoint
+      @endpoint WizardWeb.Endpoint
     end
   end
 

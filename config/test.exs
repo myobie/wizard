@@ -2,7 +2,7 @@ use Mix.Config
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :wizard, Wizard.Web.Endpoint,
+config :wizard, WizardWeb.Endpoint,
   http: [port: 4001],
   server: false
 
@@ -17,3 +17,5 @@ config :wizard, Wizard.Repo,
   database: "wizard_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+import_config "test.secret.exs"

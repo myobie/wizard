@@ -10,10 +10,10 @@ config :wizard,
   ecto_repos: [Wizard.Repo]
 
 # Configures the endpoint
-config :wizard, Wizard.Web.Endpoint,
+config :wizard, WizardWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "HNuJRF3LIeIS3onHPFeo40r6VYCLXgrgVh8LB0GkZ7v5Pi7aqorPW63nOjIsUVvk",
-  render_errors: [view: Wizard.Web.ErrorView, accepts: ~w(html json)],
+  render_errors: [view: WizardWeb.ErrorView, accepts: ~w(html json)],
   pubsub: [name: Wizard.PubSub,
            adapter: Phoenix.PubSub.PG2]
 

@@ -11,7 +11,7 @@ defmodule Wizard.Application do
       # Start the Ecto repository
       supervisor(Wizard.Repo, []),
       # Start the endpoint when the application starts
-      supervisor(Wizard.Web.Endpoint, []),
+      supervisor(WizardWeb.Endpoint, []),
       # Start your own worker by calling: Wizard.Worker.start_link(arg1, arg2, arg3)
       # worker(Wizard.Worker, [arg1, arg2, arg3]),
     ]

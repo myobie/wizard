@@ -1,5 +1,5 @@
-defmodule Wizard.Web.NotificationController do
-  use Wizard.Web, :controller
+defmodule WizardWeb.NotificationController do
+  use WizardWeb, :controller
 
   def callback(conn, %{"validationtoken" => token}) do
     conn |> text(token)

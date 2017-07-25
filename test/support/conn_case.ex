@@ -1,4 +1,4 @@
-defmodule Wizard.Web.ConnCase do
+defmodule WizardWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -19,10 +19,10 @@ defmodule Wizard.Web.ConnCase do
     quote do
       # Import conveniences for testing with connections
       use Phoenix.ConnTest
-      import Wizard.Web.Router.Helpers
+      import WizardWeb.Router.Helpers
 
       # The default endpoint for testing
-      @endpoint Wizard.Web.Endpoint
+      @endpoint WizardWeb.Endpoint
     end
   end
 
