@@ -37,14 +37,22 @@ defmodule Wizard.Sharepoint do
     end
   end
 
-  def remotely_search_sites(service, query) do
-    Repo.preload(service, :authorization)
-    |> Api.Sites.search(query)
+  def remotely_search_sites(service, user, query) do
+    case Repo.get_by(Authorization, service_id: service.id, user_id: user.id) do
+      nil -> {:error, :unauthorized}
+      auth ->
+        Api.Sites.search(auth, service, query)
+    end
   end
 
-  def remotely_list_drives(site) do
-    Repo.preload(site, service: :authorization)
-    |> Api.Sites.drives()
+  def remotely_list_drives(site, user) do
+    site = Repo.preload(site, :service)
+
+    case Repo.get_by(Authorization, service_id: site.service.id, user_id: user.id) do
+      nil -> {:error, :unauthorized}
+      auth ->
+        Api.Sites.drives(auth, site)
+    end
   end
 
   def insert_site(attrs, [service: service]) do

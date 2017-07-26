@@ -1,7 +1,7 @@
 defmodule Wizard.Sharepoint.Subscriber.Syncer do
   alias Wizard.Repo
   alias Ecto.Multi
-  alias Wizard.Sharepoint.{Api, Authorization, Drive, Site}
+  alias Wizard.Sharepoint.{Api, Authorization, Drive, Service, Site}
 
   use GenServer
   require Logger
@@ -18,7 +18,7 @@ defmodule Wizard.Sharepoint.Subscriber.Syncer do
   end
 
   def start_link({drive, authorization}) do
-    drive = drive |> Repo.preload(:site) # NOTE: make sure we have the site so we have the URL for API calls
+    drive = drive |> Repo.preload(site: :service) # NOTE: make sure we have the site so we have the URL for API calls
     GenServer.start_link(__MODULE__, {drive, authorization}, [])
   end
 
@@ -38,8 +38,8 @@ defmodule Wizard.Sharepoint.Subscriber.Syncer do
 
   defp access_token(%Authorization{access_token: access_token}), do: access_token
 
-  defp delta_link_url(%Drive{remote_id: drive_id, site: %Site{url: base_url}}) do
-    "#{base_url}/v2.0/drives/#{drive_id}/root:/:/delta"
+  defp delta_link_url(%Drive{remote_id: drive_id, site: %Site{service: %Service{endpoint_uri: endpoint_uri}}}) do
+    "#{endpoint_uri}/v2.0/drives/#{drive_id}/root:/:/delta"
   end
 
   defp fetch(%{done: true} = state), do: state # NOTE: done
