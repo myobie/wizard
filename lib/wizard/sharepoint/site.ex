@@ -1,9 +1,9 @@
 defmodule Wizard.Sharepoint.Site do
   use Wizard.Schema
-  alias Wizard.Sharepoint.{Authorization, Site}
+  alias Wizard.Sharepoint.{Service, Site}
 
   schema "sharepoint_sites" do
-    has_many :authorizations, Authorization
+    belongs_to :service, Service
 
     field :remote_id, :string
     field :url, :string
@@ -14,7 +14,6 @@ defmodule Wizard.Sharepoint.Site do
     timestamps()
   end
 
-  @doc false
   def changeset(%Site{} = site, attrs) do
     site
     |> cast(attrs, [:remote_id, :hostname, :title, :url, :description])
@@ -22,7 +21,6 @@ defmodule Wizard.Sharepoint.Site do
     |> unique_constraint(:remote_id)
   end
 
-  @doc false
   def on_conflict_options(%Changeset{} = changeset) do
     {_, hostname} = changeset |> fetch_field(:hostname)
     {_, title} = changeset |> fetch_field(:title)

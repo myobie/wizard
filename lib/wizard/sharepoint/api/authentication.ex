@@ -26,48 +26,50 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     to_string %{@authorize_uri | query: query}
   end
 
-  def authorize_first_sharepoint(code) do
+  def authorize_sharepoints(code) do
     with {:ok, d_access_token, d_refresh_token, id_token} <- get_discovery_token(code),
-         {:ok, resource_id, url} <- discover_first_sharepoint_url(d_access_token),
-         {:ok, access_token, refresh_token} <- authorize_sharepoint_resource(resource_id, refresh_token: d_refresh_token),
-         {:ok, name, email} <- extract_user_information(id_token) do
-      {:ok, %{
-        "resource_id": resource_id,
-        "url": url,
-        "name": name,
-        "email": email,
-        "refresh_token": refresh_token,
-        "access_token": access_token
-      }}
+         {:ok, services} <- discover_sharepoint_services(d_access_token),
+         {:ok, authorizations} <- authorize_sharepoint_services(services, d_refresh_token),
+         {:ok, user} <- extract_user_information(id_token) do
+      {:ok, user, services, authorizations}
     end
   end
-
-  def reauthorize_sharepoint(resource_id, refresh_token),
-    do: authorize_sharepoint_resource(resource_id, refresh_token: refresh_token)
 
   defp extract_user_information(id_token) do
     case JOSE.JWT.peek_payload(id_token) do
       %JOSE.JWT{fields: %{"name" => name, "upn" => email}} ->
-        {:ok, name, email}
+        {:ok, %{name: name, email: email}}
       _ ->
         {:error, :jwt_decode_failed}
     end
   end
 
-  defp authorize_sharepoint_resource(resource_id, [refresh_token: refresh_token]) do
-    resp = get_token(refresh_token: refresh_token, resource: resource_id)
-    case resp do
-      %{"access_token" => access_token, "refresh_token" => refresh_token} ->
-        {:ok, access_token, refresh_token}
-      _ ->
-        {:error, :get_token_failed}
+  def reauthorize_sharepoint_service(service) do
+    authorize_sharepoint_service(service, service.authorization.refresh_token)
+  end
+
+  defp authorize_sharepoint_services(services, refresh_token) do
+    authorize_sharepoint_services([], services, refresh_token)
+  end
+
+  defp authorize_sharepoint_services(authorizations, [service | services], refresh_token) do
+    case authorize_sharepoint_service(service, refresh_token) do
+      {:ok, auth} ->
+        authorize_sharepoint_services([auth | authorizations], services, refresh_token)
+      error ->
+        error
     end
   end
 
-  defp discover_first_sharepoint_url(access_token) do
-    with {:ok, services} <- discover_sharepoint_services(access_token),
-         {:ok, service} <- discover_first_sharepoint_service(services) do
-      {:ok, service["serviceResourceId"], service["serviceEndpointUri"]}
+  defp authorize_sharepoint_services(authorizations, [], _), do: {:ok, authorizations}
+
+  defp authorize_sharepoint_service(service, refresh_token) do
+    resp = get_token(refresh_token: refresh_token, resource: service.resource_id)
+    case resp do
+      %{"access_token" => access_token, "refresh_token" => refresh_token} ->
+        {:ok, %{access_token: access_token, refresh_token: refresh_token, resource_id: service.resource_id}}
+      _ ->
+        {:error, :get_token_failed}
     end
   end
 
@@ -81,26 +83,21 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     end
   end
 
-  defp is_sharepoint_service?(service) do
-    service["capability"] == "RootSite"
-  end
+  def is_sharepoint_service?(info), do: info["capability"] == "RootSite"
 
   defp discover_sharepoint_services(token) do
     resp = Api.get(@services_url, token)
     case resp do
       %{"value" => services} ->
-        services = services |> Enum.filter(&is_sharepoint_service?/1)
+        services = for info <- services, is_sharepoint_service?(info) do
+          %{resource_id: info["serviceResourceId"],
+            endpoint_uri: info["serviceEndpointUri"],
+            title: "#{info["serviceName"]} – #{info["providerName"]}"}
+        end
         Logger.debug inspect({:sharepoint_services, services})
         {:ok, services}
       _ ->
         {:error, :discover_sharepoint_services_failed}
-    end
-  end
-
-  defp discover_first_sharepoint_service(services) do
-    case List.first(services) do
-      nil -> {:error, :discover_sharepoint_service_failed}
-      service -> {:ok, service}
     end
   end
 

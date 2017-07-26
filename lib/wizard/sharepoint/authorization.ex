@@ -1,10 +1,10 @@
 defmodule Wizard.Sharepoint.Authorization do
   use Wizard.Schema
-  alias Wizard.Sharepoint.{Authorization, Site, User}
+  alias Wizard.Sharepoint.{Authorization, Service, User}
 
   schema "sharepoint_authorizations" do
     belongs_to :user, User
-    belongs_to :site, Site
+    belongs_to :service, Service
 
     field :access_token, :string
     field :refresh_token, :string
@@ -17,9 +17,9 @@ defmodule Wizard.Sharepoint.Authorization do
     authorization
     |> cast(attrs, [:access_token, :refresh_token])
     |> validate_required([:access_token, :refresh_token])
-    |> unique_constraint(:site_id, name: :authorizations_user_id_and_site_id_index)
+    |> unique_constraint(:service_id, name: :authorizations_user_id_and_service_id_index)
     |> foreign_key_constraint(:user_id)
-    |> foreign_key_constraint(:site_id)
+    |> foreign_key_constraint(:service_id)
   end
 
   @doc false
@@ -27,12 +27,5 @@ defmodule Wizard.Sharepoint.Authorization do
     authorization
     |> cast(attrs, [:access_token, :refresh_token])
     |> validate_required([:access_token, :refresh_token])
-  end
-
-  @doc false
-  def on_conflict_options(%Changeset{} = changeset) do
-    {_, access_token} = changeset |> fetch_field(:access_token)
-    {_, refresh_token} = changeset |> fetch_field(:refresh_token)
-    [access_token: access_token, refresh_token: refresh_token]
   end
 end

@@ -8,6 +8,7 @@ defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Site do
       add :hostname, :string, null: false
       add :title, :string, null: false
       add :description, :string
+      add :service_id, references(:sharepoint_services, on_delete: :delete_all), null: false
 
       timestamps()
     end

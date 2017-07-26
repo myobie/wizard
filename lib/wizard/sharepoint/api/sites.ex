@@ -1,12 +1,12 @@
 defmodule Wizard.Sharepoint.Api.Sites do
   alias Wizard.Sharepoint.Api
 
-  def search(query, authorization) do
+  def search(service, query) do
     params = URI.encode_query(%{search: query})
-    uri = URI.parse("#{site.url}/v2.0/sites")
+    uri = URI.parse("#{service.endpoint_uri}/v2.0/sites")
     url = to_string(%{uri | query: params})
 
-    resp = Api.get(url, authorization.access_token)
+    resp = Api.get(url, service.authorization.access_token)
 
     Enum.map(resp["value"], fn site -> %{
       remote_id: site["id"],
@@ -17,10 +17,10 @@ defmodule Wizard.Sharepoint.Api.Sites do
     } end)
   end
 
-  def drives(site, authorization) do
-    url = "#{site.url}/v2.0/sites/#{site.id}/drives"
+  def drives(site) do
+    url = "#{site.service.endpoint_uri}/v2.0/sites/#{site.remote_id}/drives"
 
-    resp = Api.get(url, authorization.access_token)
+    resp = Api.get(url, site.service.authorization.access_token)
 
     Enum.map(resp["value"], fn drive -> %{
       remote_id: drive["id"],

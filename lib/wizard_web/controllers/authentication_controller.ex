@@ -14,9 +14,8 @@ defmodule WizardWeb.AuthenticationController do
     original_state = get_session(conn, :state)
 
     if original_state == state do
-      case Sharepoint.authorize_first_sharepoint(code) do
-        {:ok, info} ->
-          {:ok, results} = Sharepoint.create_user_and_authorization(info)
+      case Sharepoint.authorize_sharepoints(code) do
+        {:ok, results} ->
           conn |> text("worked:\n\n#{inspect(results)}")
         error ->
           conn

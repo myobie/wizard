@@ -1,5 +1,5 @@
 defmodule Wizard.Repo.Migrations.CreateWizard.User do
-  use Ecto.Migration
+  use Wizard.Migration
 
   def change do
     create table(:users) do
