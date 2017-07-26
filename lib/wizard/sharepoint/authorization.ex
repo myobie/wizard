@@ -1,6 +1,7 @@
 defmodule Wizard.Sharepoint.Authorization do
   use Wizard.Schema
-  alias Wizard.Sharepoint.{Authorization, Service, User}
+  alias Wizard.Sharepoint.{Authorization, Service}
+  alias Wizard.User
 
   schema "sharepoint_authorizations" do
     belongs_to :user, User

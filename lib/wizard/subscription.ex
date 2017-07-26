@@ -1,20 +1,19 @@
-defmodule Wizard.Subscription do
+defmodule Wizard.Subscriber.Subscription do
   use Wizard.Schema
-  alias Wizard.{Sharepoint, Subscription, User}
-
+  alias Wizard.{Sharepoint, User}
 
   schema "subscriptions" do
     belongs_to :user, User
-    belongs_to :sharepoint_drive, Sharepoint.Drive
+    belongs_to :drive, Sharepoint.Drive
 
     timestamps()
   end
 
-  def changeset(%Subscription{} = subscription, attrs) do
-    subscription
-    |> cast(attrs, [])
+  def changeset do
+    %__MODULE__{}
+    |> cast([], [])
     |> foreign_key_constraint(:user_id)
-    |> foreign_key_constraint(:sharepoint_drive_id)
-    |> unique_constraint(:sharepoint_drive_id)
+    |> foreign_key_constraint(:drive_id)
+    |> unique_constraint(:drive_id)
   end
 end

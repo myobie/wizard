@@ -1,4 +1,4 @@
-defmodule Wizard.Sharepoint.Subscriber.Syncer do
+defmodule Wizard.Subscriber.Syncer do
   alias Wizard.Repo
   alias Ecto.Multi
   alias Wizard.Sharepoint.{Api, Authorization, Drive, Item, Service, Site}
@@ -8,9 +8,12 @@ defmodule Wizard.Sharepoint.Subscriber.Syncer do
   use GenServer
   require Logger
 
-  def init({%Drive{delta_link: delta_link} = drive, %Authorization{} = authorization}) do
+  def init({subscription, authorization}) do
+    %Drive{delta_link: delta_link} = drive = subscription.drive
+
     {:ok, %{
       drive: drive,
+      subscription: subscription,
       authorization: authorization,
       delta_link: delta_link,
       next_link: nil,
@@ -19,13 +22,12 @@ defmodule Wizard.Sharepoint.Subscriber.Syncer do
     }}
   end
 
-  def start_link({drive, authorization}) do
-    drive = drive |> Repo.preload(site: :service) # NOTE: make sure we have the site so we have the URL for API calls
-    GenServer.start_link(__MODULE__, {drive, authorization}, [])
+  def start_link({subscription, authorization}) do
+    GenServer.start_link(__MODULE__, {subscription, authorization}, [])
   end
 
-  def start_link_and_sync(args) do
-    {:ok, pid} = start_link(args)
+  def start_link_and_sync({subscription, authorization}) do
+    {:ok, pid} = start_link({subscription, authorization})
     GenServer.cast(pid, :sync)
     {:ok, pid}
   end
@@ -81,6 +83,10 @@ defmodule Wizard.Sharepoint.Subscriber.Syncer do
       {:error, error} ->
         %{state | error: {:process_error, error}, done: true} # NOTE: done
     end
+  end
+
+  defp process(error, state) do
+    %{state | error: error, done: true} # NOTE: done
   end
 
   defp process_items(items, %Drive{} = drive) do

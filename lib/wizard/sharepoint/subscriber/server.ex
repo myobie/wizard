@@ -1,22 +1,22 @@
-defmodule Wizard.Sharepoint.Subscriber.Server do
-  alias Wizard.Sharepoint.Subscriber.Syncer
+defmodule Wizard.Subscriber.Server do
+  alias Wizard.Subscriber.Syncer
   use GenServer
   require Logger
 
-  def init({drive, authorization}) do
+  def init({subscription, authorization}) do
     {:ok, %{
-      drive: drive,
+      subscription: subscription,
       authorization: authorization,
       insync: nil
     }}
   end
 
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, [])
+  def start_link(subscription) do
+    GenServer.start_link(__MODULE__, subscription, [])
   end
 
-  def handle_cast(:sync, %{insync: nil, drive: drive, authorization: authorization} = state) do
-    {:ok, pid} = Syncer.start_link({drive, authorization})
+  def handle_cast(:sync, %{insync: nil, subscription: subscription, authorization: authorization} = state) do
+    {:ok, pid} = Syncer.start_link({subscription, authorization})
     ref = Process.monitor(pid)
     GenServer.cast(pid, :sync)
     {:noreply, %{state | insync: ref}}

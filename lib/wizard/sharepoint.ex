@@ -6,7 +6,9 @@ defmodule Wizard.Sharepoint do
   alias Ecto.Multi
   alias Wizard.Repo
 
-  alias Wizard.Sharepoint.{Api, Authorization, Drive, Service, Site, User}
+  alias Wizard.Sharepoint.{Api, Authorization, Drive, Service, Site}
+  alias Wizard.Subscriber.Subscription
+  alias Wizard.User
 
   def authorize_url(state),
     do: Api.Authentication.authorize_url(state)
@@ -50,8 +52,7 @@ defmodule Wizard.Sharepoint do
 
     case Repo.get_by(Authorization, service_id: site.service.id, user_id: user.id) do
       nil -> {:error, :unauthorized}
-      auth ->
-        Api.Sites.drives(auth, site)
+      auth -> Api.Sites.drives(auth, site)
     end
   end
 
@@ -64,6 +65,13 @@ defmodule Wizard.Sharepoint do
   def insert_drive(attrs, [site: site]) do
     Drive.changeset(%Drive{}, attrs)
     |> put_assoc(:site, site)
+    |> Repo.insert()
+  end
+
+  def insert_subscription([drive: drive, user: user]) do
+    Subscription.changeset()
+    |> put_assoc(:sharepoint_drive, drive)
+    |> put_assoc(:user, user)
     |> Repo.insert()
   end
 

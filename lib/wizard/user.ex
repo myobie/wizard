@@ -1,6 +1,7 @@
-defmodule Wizard.Sharepoint.User do
+defmodule Wizard.User do
   use Wizard.Schema
-  alias Wizard.Sharepoint.{Authorization, User}
+  alias Wizard.User
+  alias Wizard.Sharepoint.Authorization
 
   schema "users" do
     has_many :authorizations, Authorization
