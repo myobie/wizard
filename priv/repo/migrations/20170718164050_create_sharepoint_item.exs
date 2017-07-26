@@ -7,7 +7,7 @@ defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Item do
       add :name, :string, null: false
       add :type, :string, null: false
       add :last_modified_at, :utc_datetime, null: false
-      add :size, :bigint, null: false
+      add :size, :bigserial, null: false
       add :url, :string, null: false
       add :full_path, :string, null: false
       add :parent_id, references(:sharepoint_items, on_delete: :nilify_all), null: true
