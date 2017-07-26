@@ -1,7 +1,9 @@
 defmodule Wizard.Sharepoint.Subscriber.Syncer do
   alias Wizard.Repo
   alias Ecto.Multi
-  alias Wizard.Sharepoint.{Api, Authorization, Drive, Service, Site}
+  alias Wizard.Sharepoint.{Api, Authorization, Drive, Item, Service, Site}
+
+  import Ecto.Changeset, only: [put_assoc: 3, fetch_field: 2]
 
   use GenServer
   require Logger
@@ -42,7 +44,7 @@ defmodule Wizard.Sharepoint.Subscriber.Syncer do
     "#{endpoint_uri}/v2.0/drives/#{drive_id}/root:/:/delta"
   end
 
-  defp fetch(%{done: true} = state), do: state # NOTE: done
+  defp fetch(%{done: true} = state), do: {:ok, state} # NOTE: done
 
   defp fetch(%{drive: drive, authorization: auth, delta_link: nil, next_link: nil} = state) do
     Api.get(delta_link_url(drive), access_token(auth))
@@ -89,10 +91,56 @@ defmodule Wizard.Sharepoint.Subscriber.Syncer do
     |> Repo.transaction()
   end
 
-  defp process_item(item, multi, _drive) do
-    Logger.debug("processing: #{inspect(item)}")
-    # TODO: actually build a Multi.insert for this item
-    multi
+  defp process_item(info, multi, drive) do
+    Logger.debug("processing: #{inspect(info)}")
+
+    changeset = Item.changeset(%Item{}, parse_item(info))
+                |> put_assoc(:drive, drive)
+                |> put_assoc_parent(info)
+
+    multi |> insert_item(changeset)
+  end
+
+  defp parse_item(info) do
+    %{
+      remote_id: info["id"],
+      name: info["name"],
+      type: item_type(info),
+      last_modified_at: get_in(info, ["fileSystemInfo", "lastModifiedDateTime"]),
+      size: info["size"],
+      url: info["webUrl"],
+      full_path: "?"
+    }
+  end
+
+  defp item_type(%{"folder" => _}), do: "folder"
+  defp item_type(_), do: "file"
+
+  defp put_assoc_parent(changeset, %{"parentReference" => %{"driveId" => drive_remote_id, "id" => parent_remote_id}}) do
+    {_, drive} = fetch_field(changeset, :drive)
+
+    if drive.remote_id == drive_remote_id do
+      case Repo.get_by(Item, remote_id: parent_remote_id) do
+        nil -> changeset
+        parent_item ->
+          changeset |> put_assoc(:parent, parent_item)
+      end
+    else
+      changeset
+    end
+  end
+
+  defp put_assoc_parent(changeset, _), do: changeset
+
+  defp insert_item(multi, changeset) do
+    case fetch_field(changeset, :remote_id) do
+      :error ->
+        multi
+        |> Multi.error({:item, :missing_remote_id}, :missing_item_remote_id)
+      {_, remote_id} ->
+        multi
+        |> Multi.insert({:item, remote_id}, changeset)
+    end
   end
 
   defp update_drive(drive, delta_link) do
