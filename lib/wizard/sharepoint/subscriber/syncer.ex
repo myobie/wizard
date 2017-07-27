@@ -1,20 +1,18 @@
 defmodule Wizard.Subscriber.Syncer do
   alias Wizard.Repo
   alias Ecto.Multi
-  alias Wizard.Sharepoint.{Api, Authorization, Drive, Item, Service, Site}
+  alias Wizard.Sharepoint.{Api, Drive, Item}
+  alias Wizard.Subscriber
 
   import Ecto.Changeset, only: [put_assoc: 3, fetch_field: 2]
 
   use GenServer
   require Logger
 
-  def init({subscription, authorization}) do
-    %Drive{delta_link: delta_link} = drive = subscription.drive
-
+  def init(%Subscriber{authorization: %{access_token: access_token}, subscription: %{drive: %{delta_link: delta_link}}} = subscriber) do
     {:ok, %{
-      drive: drive,
-      subscription: subscription,
-      authorization: authorization,
+      subscriber: subscriber,
+      access_token: access_token,
       delta_link: delta_link,
       next_link: nil,
       done: false,
@@ -22,12 +20,12 @@ defmodule Wizard.Subscriber.Syncer do
     }}
   end
 
-  def start_link({subscription, authorization}) do
-    GenServer.start_link(__MODULE__, {subscription, authorization}, [])
+  def start_link(%Subscriber{} = subscriber) do
+    GenServer.start_link(__MODULE__, subscriber, [])
   end
 
-  def start_link_and_sync({subscription, authorization}) do
-    {:ok, pid} = start_link({subscription, authorization})
+  def start_link_and_sync(%Subscriber{} = subscriber) do
+    {:ok, pid} = start_link(subscriber)
     GenServer.cast(pid, :sync)
     {:ok, pid}
   end
@@ -40,35 +38,33 @@ defmodule Wizard.Subscriber.Syncer do
   defp stop_message(%{error: nil} = state), do: {:stop, :normal, state}
   defp stop_message(%{error: error} = state), do: {:stop, {:error, error}, state}
 
-  defp access_token(%Authorization{access_token: access_token}), do: access_token
-
-  defp delta_link_url(%Drive{remote_id: drive_id, site: %Site{service: %Service{endpoint_uri: endpoint_uri}}}) do
+  defp delta_link_url(%Subscriber{subscription: %{drive: %{remote_id: drive_id, site: %{service: %{endpoint_uri: endpoint_uri}}}}}) do
     "#{endpoint_uri}/v2.0/drives/#{drive_id}/root:/:/delta"
   end
 
   defp fetch(%{done: true} = state), do: {:ok, state} # NOTE: done
 
-  defp fetch(%{drive: drive, authorization: auth, delta_link: nil, next_link: nil} = state) do
-    Api.get(delta_link_url(drive), access_token(auth))
+  defp fetch(%{subscriber: subscriber, access_token: access_token, delta_link: nil, next_link: nil} = state) do
+    Api.get(delta_link_url(subscriber), access_token)
     |> process(state)
     |> fetch()
   end
 
-  defp fetch(%{authorization: auth, delta_link: nil, next_link: next_link} = state) do
-    Api.get(next_link, access_token(auth))
+  defp fetch(%{access_token: access_token, delta_link: nil, next_link: next_link} = state) do
+    Api.get(next_link, access_token)
     |> process(state)
     |> fetch()
   end
 
-  defp fetch(%{authorization: auth, delta_link: delta_link, next_link: nil} = state) do
-    Api.get(delta_link, access_token(auth))
+  defp fetch(%{access_token: access_token, delta_link: delta_link, next_link: nil} = state) do
+    Api.get(delta_link, access_token)
     |> process(state)
     |> fetch()
   end
 
-  defp process(%{"@odata.deltaLink" => delta_link, "value" => items}, %{drive: drive} = state) do
-    with {:ok, _} <- process_items(items, drive),
-         {:ok, _} <- update_drive(drive, delta_link) do
+  defp process(%{"@odata.deltaLink" => delta_link, "value" => items}, state) do
+    with {:ok, _} <- process_items(items, state.subscriber),
+         {:ok, _} <- update_drive(delta_link, state.subscriber) do
       %{state | delta_link: delta_link, next_link: nil, done: true} # NOTE: done
     else
       {:error, error} ->
@@ -76,8 +72,8 @@ defmodule Wizard.Subscriber.Syncer do
     end
   end
 
-  defp process(%{"@odata.nextLink" => next_link, "value" => items}, %{drive: drive} = state) do
-    with {:ok, _} <- process_items(items, drive) do
+  defp process(%{"@odata.nextLink" => next_link, "value" => items}, state) do
+    with {:ok, _} <- process_items(items, state.subscriber) do
       %{state | next_link: next_link, delta_link: nil}
     else
       {:error, error} ->
@@ -89,22 +85,24 @@ defmodule Wizard.Subscriber.Syncer do
     %{state | error: error, done: true} # NOTE: done
   end
 
-  defp process_items(items, %Drive{} = drive) do
-    Logger.debug("processing #{length(items)} items")
-    Enum.reduce(items, Multi.new, fn item, multi ->
-      process_item(item, multi, drive)
-    end)
+  defp process_items(infos, %Subscriber{subscription: %{drive: drive}}) do
+    Logger.debug("processing #{length(infos)} items for #{inspect(drive)}")
+
+    Multi.new
+    |> insert_items(infos, drive: drive)
     |> Repo.transaction()
   end
 
-  defp process_item(info, multi, drive) do
+  defp insert_items(multi, [info | infos], [drive: drive]) do
     Logger.debug("processing: #{inspect(info)}")
 
     changeset = Item.changeset(%Item{}, parse_item(info))
                 |> put_assoc(:drive, drive)
                 |> put_assoc_parent(info)
 
-    multi |> insert_item(changeset)
+    multi
+    |> insert_item(changeset)
+    |> insert_items(infos, drive: drive)
   end
 
   defp parse_item(info) do
@@ -149,8 +147,8 @@ defmodule Wizard.Subscriber.Syncer do
     end
   end
 
-  defp update_drive(drive, delta_link) do
-    drive
+  defp update_drive(delta_link, subscriber) do
+    subscriber.subscription.drive
     |> Drive.update_delta_link_changeset(delta_link)
     |> Repo.update()
   end

@@ -1,22 +1,22 @@
 defmodule Wizard.Subscriber.Server do
-  alias Wizard.Subscriber.Syncer
+  alias Wizard.Subscriber
+  alias Subscriber.Syncer
   use GenServer
   require Logger
 
-  def init({subscription, authorization}) do
+  def init(%Subscriber{} = subscriber) do
     {:ok, %{
-      subscription: subscription,
-      authorization: authorization,
+      subscriber: subscriber,
       insync: nil
     }}
   end
 
-  def start_link(subscription) do
-    GenServer.start_link(__MODULE__, subscription, [])
+  def start_link(%Subscriber{} = subscriber) do
+    GenServer.start_link(__MODULE__, subscriber, [])
   end
 
-  def handle_cast(:sync, %{insync: nil, subscription: subscription, authorization: authorization} = state) do
-    {:ok, pid} = Syncer.start_link({subscription, authorization})
+  def handle_cast(:sync, %{insync: nil, subscriber: subscriber} = state) do
+    {:ok, pid} = Syncer.start_link(subscriber)
     ref = Process.monitor(pid)
     GenServer.cast(pid, :sync)
     {:noreply, %{state | insync: ref}}
