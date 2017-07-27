@@ -11,7 +11,7 @@ defmodule Wizard.Subscriber.Subscription do
 
   def changeset do
     %__MODULE__{}
-    |> cast([], [])
+    |> cast(%{}, [])
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:drive_id)
     |> unique_constraint(:drive_id)

@@ -105,6 +105,8 @@ defmodule Wizard.Subscriber.Syncer do
     |> insert_items(infos, drive: drive)
   end
 
+  defp insert_items(multi, [], [drive: _drive]), do: multi
+
   defp parse_item(info) do
     %{
       remote_id: info["id"],

@@ -12,13 +12,13 @@ defmodule Wizard.Subscriber do
   end
 
   def subscribe(user, drive) do
-    with {:ok, subscription} <- insert_subscription(drive: drive, user: user) do
-      {:ok, pid} = start_link(subscription)
-      {:ok, %__MODULE__{subscription: subscription, pid: pid}}
-    end
+    with {:ok, subscription} <- insert_subscription(drive: drive, user: user),
+         {:ok, subscriber} <- start_link(subscription),
+         :ok <- sync(subscriber),
+      do: subscriber
   end
 
-  defp insert_subscription([drive: drive, user: user]) do
+  def insert_subscription([drive: drive, user: user]) do
     Subscription.changeset()
     |> put_assoc(:drive, drive)
     |> put_assoc(:user, user)
@@ -31,14 +31,26 @@ defmodule Wizard.Subscriber do
          do: {:ok, subscriber}
   end
 
+  def start_link(%Subscription{} = subscription) do
+    %__MODULE__{subscription: subscription}
+    |> start_link()
+  end
+
   def start_link(%__MODULE__{} = subscriber) do
-    preload(subscriber)
-    |> authorization()
-    |> Server.start_link()
+    with subscriber = preload_and_authorization(subscriber),
+         {:ok, pid} <- Server.start_link(subscriber) do
+      {:ok, %{subscriber | pid: pid}}
+    end
   end
 
   def sync(%__MODULE__{} = subscriber) do
     GenServer.cast(subscriber.pid, :sync)
+  end
+
+  def preload_and_authorization(%__MODULE__{} = subscriber) do
+    subscriber
+    |> preload()
+    |> authorization()
   end
 
   def preload(%__MODULE__{subscription: subscription} = subscriber) do
