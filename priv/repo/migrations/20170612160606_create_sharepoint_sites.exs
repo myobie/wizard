@@ -1,5 +1,5 @@
 defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Site do
-  use Ecto.Migration
+  use Wizard.Migration
 
   def change do
     create table(:sharepoint_sites) do

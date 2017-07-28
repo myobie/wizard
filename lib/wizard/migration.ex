@@ -13,4 +13,10 @@ defmodule Wizard.Migration do
     |> Keyword.put(:type, :utc_datetime)
     |> Ecto.Migration.timestamps()
   end
+
+  defmacro deleted_at do
+    quote do
+      add :deleted_at, :utc_datetime
+    end
+  end
 end

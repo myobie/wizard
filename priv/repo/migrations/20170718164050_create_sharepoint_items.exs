@@ -1,5 +1,5 @@
 defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Item do
-  use Ecto.Migration
+  use Wizard.Migration
 
   def change do
     create table(:sharepoint_items) do
@@ -13,9 +13,10 @@ defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Item do
       add :parent_id, references(:sharepoint_items, on_delete: :nilify_all), null: true
       add :drive_id, references(:sharepoint_drives, on_delete: :delete_all), null: false
 
+      deleted_at()
       timestamps()
     end
 
-    create unique_index(:sharepoint_drives, [:remote_id, :type], name: :sharepoint_items_remote_id_and_type_index)
+    create unique_index(:sharepoint_items, [:remote_id])
   end
 end

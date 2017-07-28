@@ -1,5 +1,5 @@
 defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Authorization do
-  use Ecto.Migration
+  use Wizard.Migration
 
   def change do
     create table(:sharepoint_authorizations) do

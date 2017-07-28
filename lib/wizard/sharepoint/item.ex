@@ -14,6 +14,7 @@ defmodule Wizard.Sharepoint.Item do
     field :url, :string
     field :full_path, :string
 
+    deleted_at()
     timestamps()
   end
 
@@ -24,6 +25,6 @@ defmodule Wizard.Sharepoint.Item do
     |> validate_required([:remote_id, :name, :type, :last_modified_at, :size, :url, :full_path])
     |> foreign_key_constraint(:drive_id)
     |> foreign_key_constraint(:parent_id)
-    |> unique_constraint(:remote_id, name: :sharepoint_items_remote_id_and_type_index)
+    |> unique_constraint(:remote_id)
   end
 end
