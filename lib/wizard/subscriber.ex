@@ -1,6 +1,6 @@
 defmodule Wizard.Subscriber do
   alias Wizard.Repo
-  alias Wizard.Sharepoint.{Authorization}
+  alias Wizard.Sharepoint.Authorization
   alias Wizard.Subscriber.{Server, Subscription}
 
   import Ecto.Changeset, only: [put_assoc: 3]

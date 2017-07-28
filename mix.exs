@@ -43,6 +43,7 @@ defmodule Wizard.Mixfile do
      {:guardian, "~> 0.14"},
      {:jose, "~> 1.8"},
      {:timex, "~> 3.0"},
+     {:csv, "~> 2.0.0"},
      {:quick_alias, "~> 0.1.0", only: [:dev], runtime: false}]
   end
 

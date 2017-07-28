@@ -44,8 +44,8 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     end
   end
 
-  def reauthorize_sharepoint_service(service) do
-    authorize_sharepoint_service(service, service.authorization.refresh_token)
+  def reauthorize_sharepoint_service(service, refresh_token) do
+    authorize_sharepoint_service(service, refresh_token)
   end
 
   defp authorize_sharepoint_services(services, refresh_token) do
