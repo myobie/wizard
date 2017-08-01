@@ -18,9 +18,10 @@ defmodule Wizard.Sharepoint.Authorization do
     authorization
     |> cast(attrs, [:access_token, :refresh_token])
     |> validate_required([:access_token, :refresh_token])
-    |> unique_constraint(:service_id, name: :authorizations_user_id_and_service_id_index)
+    |> validate_length([:access_token, :refresh_token], max: 2048)
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:service_id)
+    |> unique_constraint(:service_id, name: :authorizations_user_id_and_service_id_index)
   end
 
   @doc false

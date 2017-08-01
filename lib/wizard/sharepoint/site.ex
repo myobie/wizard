@@ -18,14 +18,15 @@ defmodule Wizard.Sharepoint.Site do
     site
     |> cast(attrs, [:remote_id, :hostname, :title, :url, :description])
     |> validate_required([:remote_id, :hostname, :title, :url])
+    |> validate_length([:remote_id, :hostname], max: 255)
+    |> validate_length([:url, :title], max: 1024)
+    |> truncate_length(:description, 2048)
+    |> foreign_key_constraint(:service_id)
     |> unique_constraint(:remote_id)
   end
 
   def on_conflict_options(%Changeset{} = changeset) do
-    {_, hostname} = changeset |> fetch_field(:hostname)
-    {_, title} = changeset |> fetch_field(:title)
-    {_, url} = changeset |> fetch_field(:url)
-    {_, description} = changeset |> fetch_field(:description)
-    [hostname: hostname, title: title, url: url, description: description]
+    changeset
+    |> fetch_fields([:hostname, :title, :url, :description])
   end
 end

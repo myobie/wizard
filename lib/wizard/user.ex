@@ -17,12 +17,14 @@ defmodule Wizard.User do
     user
     |> cast(attrs, [:name, :email])
     |> validate_required([:name, :email])
+    |> validate_length(:name, max: 255)
+    |> validate_length(:email, max: 2048)
     |> unique_constraint(:email)
   end
 
   @doc false
   def on_conflict_options(%Changeset{} = changeset) do
-    {_, name} = changeset |> fetch_field(:name)
-    [name: name]
+    changeset
+    |> fetch_fields([:name])
   end
 end

@@ -5,7 +5,7 @@ defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Service do
     create table(:sharepoint_services) do
       add :resource_id, :string, null: false
       add :endpoint_uri, :string, null: false
-      add :title, :string, null: false
+      add :title, :string, null: false, size: 1024
 
       timestamps()
     end

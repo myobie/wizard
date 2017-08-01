@@ -20,20 +20,27 @@ defmodule Wizard.Sharepoint.Item do
 
   @doc false
   def changeset(%Item{} = item, attrs) do
+    # TODO: type is an enum
+
     item
     |> cast(attrs, [:remote_id, :name, :type, :last_modified_at, :size, :url, :full_path])
     |> validate_required([:remote_id, :name, :type, :last_modified_at, :size, :url, :full_path])
-    |> foreign_key_constraint(:drive_id)
-    |> foreign_key_constraint(:parent_id)
-    |> unique_constraint(:remote_id)
+    |> validate_length([:remote_id, :name], max: 255)
+    |> validate_length(:url, max: 3072)
+    |> changeset_constraints()
   end
 
   def delete_changeset(%Item{} = item) do
     item
     |> change(deleted_at: DateTime.utc_now())
-    |> foreign_key_constraint(:drive_id)
+    |> changeset_constraints()
+  end
+
+  defp changeset_constraints(changeset) do
+    changeset
     |> foreign_key_constraint(:parent_id)
-    |> unique_constraint(:remote_id)
+    |> foreign_key_constraint(:drive_id)
+    |> unique_constraint(:remote_id, name: :sharepoint_items_remote_id_and_drive_id_index)
   end
 
   def parse_remote(info) do

@@ -16,11 +16,16 @@ defmodule Wizard.Sharepoint.Drive do
 
   @doc false
   def changeset(%Drive{} = drive, attrs) do
+    # TODO: type is an enum
+
     drive
     |> cast(attrs, [:remote_id, :name, :url, :type, :delta_link])
     |> validate_required([:remote_id, :name, :url, :type])
+    |> validate_length([:remote_id, :name], max: 255)
+    |> validate_length(:url, max: 1024)
+    |> validate_length(:delta_link, max: 2048)
     |> foreign_key_constraint(:site_id)
-    |> unique_constraint(:remote_id, name: :sharepoint_items_remote_id_and_drive_id_index)
+    |> unique_constraint(:remote_id)
   end
 
   @doc false

@@ -8,8 +8,7 @@ defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Item do
       add :type, :string, null: false
       add :last_modified_at, :utc_datetime, null: false
       add :size, :bigserial, null: false
-      add :url, :string, null: false
-      add :full_path, :string, null: false
+      add :url, :string, null: false, size: 3072
       add :parent_id, references(:sharepoint_items, on_delete: :nilify_all), null: true
       add :drive_id, references(:sharepoint_drives, on_delete: :delete_all), null: false
 

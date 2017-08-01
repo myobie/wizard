@@ -17,6 +17,8 @@ defmodule Wizard.Sharepoint.Service do
     service
     |> cast(attrs, [:resource_id, :endpoint_uri, :title])
     |> validate_required([:resource_id, :endpoint_uri, :title])
+    |> truncate_length(:title, 1024)
+    |> validate_length([:resource_id, :endpoint_uri], max: 255)
     |> unique_constraint(:resource_id)
   end
 end

@@ -4,7 +4,7 @@ defmodule Wizard.Repo.Migrations.CreateWizard.User do
   def change do
     create table(:users) do
       add :name, :string, null: false
-      add :email, :string, null: false
+      add :email, :string, size: 2048, null: false
 
       timestamps()
     end
