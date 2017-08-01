@@ -18,13 +18,16 @@ defmodule Wizard.Schema do
   end
 
   @spec fetch_fields(Changeset.t, list(atom)) :: Keyword.t
-  def fetch_fields(changeset, fields), do: fetch_fields(changeset, fields, [])
+  def fetch_fields(changeset, fields), do: fetch_fields([], changeset, fields)
 
   @spec fetch_fields(Keyword.t, Changeset.t, nonempty_list(atom)) :: Keyword.t
   def fetch_fields(results, _changeset, []), do: results
 
   def fetch_fields(results, changeset, [field | fields]) do
-    {_, value} = Changeset.fetch_field(changeset, field)
+    value = case Changeset.fetch_field(changeset, field) do
+      :error -> nil
+      {_, v} -> v
+    end
 
     results
     |> Keyword.put(field, value)
