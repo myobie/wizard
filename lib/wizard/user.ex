@@ -3,6 +3,8 @@ defmodule Wizard.User do
   alias Wizard.User
   alias Wizard.Sharepoint.Authorization
 
+  @type t :: %__MODULE__{}
+
   schema "users" do
     has_many :authorizations, Authorization
 

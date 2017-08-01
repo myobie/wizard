@@ -2,6 +2,8 @@ defmodule Wizard.Sharepoint.Service do
   use Wizard.Schema
   alias Wizard.Sharepoint.{Authorization, Service, Site}
 
+  @type t :: %__MODULE__{}
+
   schema "sharepoint_services" do
     has_many :authorizations, Authorization
     has_many :sites, Site

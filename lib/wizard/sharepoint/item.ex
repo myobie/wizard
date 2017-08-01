@@ -2,6 +2,8 @@ defmodule Wizard.Sharepoint.Item do
   use Wizard.Schema
   alias Wizard.Sharepoint.{Drive, Item}
 
+  @type t :: %__MODULE__{}
+
   schema "sharepoint_items" do
     belongs_to :parent, Item
     belongs_to :drive, Drive

@@ -59,7 +59,7 @@ defmodule Wizard.Subscriber.Syncer do
     |> fetch()
   end
 
-  defp process(%{"@odata.deltaLink" => delta_link, "value" => items}, state) do
+  defp process({:ok, %{"@odata.deltaLink" => delta_link, "value" => items}}, state) do
     with {:ok, _} <- process_items(items, state.subscriber),
          {:ok, _} <- Sharepoint.update_drive(state.subscriber.subscription.drive, delta_link: delta_link) do
       %{state | delta_link: delta_link, next_link: nil, done: true} # NOTE: done
@@ -69,7 +69,7 @@ defmodule Wizard.Subscriber.Syncer do
     end
   end
 
-  defp process(%{"@odata.nextLink" => next_link, "value" => items}, state) do
+  defp process({:ok, %{"@odata.nextLink" => next_link, "value" => items}}, state) do
     with {:ok, _} <- process_items(items, state.subscriber) do
       %{state | next_link: next_link, delta_link: nil}
     else
@@ -78,7 +78,7 @@ defmodule Wizard.Subscriber.Syncer do
     end
   end
 
-  defp process(error, state) do
+  defp process({:error, error}, state) do
     %{state | error: error, done: true} # NOTE: done
   end
 

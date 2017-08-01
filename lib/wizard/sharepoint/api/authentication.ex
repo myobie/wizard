@@ -1,6 +1,8 @@
 defmodule Wizard.Sharepoint.Api.Authentication do
   require Logger
 
+  @type post_result :: {:ok, map} | {:ok, nil} | {:error, any}
+
   @client_id Application.fetch_env!(:wizard, :aad_client_id)
   @client_secret Application.fetch_env!(:wizard, :aad_client_secret)
   @redirect_url Application.fetch_env!(:wizard, :aad_redirect_url)
@@ -12,9 +14,10 @@ defmodule Wizard.Sharepoint.Api.Authentication do
   @response_type "code"
   @ssl_settings [ssl: [{:versions, [:'tlsv1.2']}]]
 
-  alias Wizard.Sharepoint.Api
+  alias Wizard.Sharepoint.{Api, Service}
   import Api, only: [decode_json_response: 1]
 
+  @spec authorize_url(String.t) :: String.t
   def authorize_url(state) do
     params = %{
       client_id: @client_id,
@@ -26,6 +29,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     to_string %{@authorize_uri | query: query}
   end
 
+  @spec authorize_sharepoints(String.t) :: {:ok, map, list(map), list(map)} | {:error, any}
   def authorize_sharepoints(code) do
     with {:ok, d_access_token, d_refresh_token, id_token} <- get_discovery_token(code),
          {:ok, services} <- discover_sharepoint_services(d_access_token),
@@ -35,6 +39,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     end
   end
 
+  @spec extract_user_information(String.t) :: {:ok, map} | {:error, atom}
   defp extract_user_information(id_token) do
     case JOSE.JWT.peek_payload(id_token) do
       %JOSE.JWT{fields: %{"name" => name, "upn" => email}} ->
@@ -48,10 +53,12 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     authorize_sharepoint_service(service, refresh_token)
   end
 
+  @spec authorize_sharepoint_services([map], String.t) :: {:ok, [map]} | {:error, any}
   defp authorize_sharepoint_services(services, refresh_token) do
     authorize_sharepoint_services([], services, refresh_token)
   end
 
+  @spec authorize_sharepoint_services([map], [map], String.t) :: {:ok, [map]} | {:error, any}
   defp authorize_sharepoint_services(authorizations, [service | services], refresh_token) do
     case authorize_sharepoint_service(service, refresh_token) do
       {:ok, auth} ->
@@ -63,32 +70,33 @@ defmodule Wizard.Sharepoint.Api.Authentication do
 
   defp authorize_sharepoint_services(authorizations, [], _), do: {:ok, authorizations}
 
+  @spec authorize_sharepoint_service(Service.t, String.t) :: {:ok, map} | {:error, atom}
   defp authorize_sharepoint_service(service, refresh_token) do
-    resp = get_token(refresh_token: refresh_token, resource: service.resource_id)
-    case resp do
-      %{"access_token" => access_token, "refresh_token" => refresh_token} ->
+    case get_token(refresh_token: refresh_token, resource: service.resource_id) do
+      {:ok, %{"access_token" => access_token, "refresh_token" => refresh_token}} ->
         {:ok, %{access_token: access_token, refresh_token: refresh_token, resource_id: service.resource_id}}
       _ ->
         {:error, :get_token_failed}
     end
   end
 
+  @spec get_discovery_token(String.t) :: {:ok, String.t, String.t, String.t} | {:error, atom}
   defp get_discovery_token(code) do
-    resp = get_token(code: code, resource: @discovery_url)
-    case resp do
-      %{"access_token" => access_token, "refresh_token" => refresh_token, "id_token" => id_token} ->
+    case get_token(code: code, resource: @discovery_url) do
+      {:ok, %{"access_token" => access_token, "refresh_token" => refresh_token, "id_token" => id_token}} ->
         {:ok, access_token, refresh_token, id_token}
       _ ->
         {:error, :get_token_failed}
     end
   end
 
+  @spec is_sharepoint_service?(map) :: boolean
   def is_sharepoint_service?(info), do: info["capability"] == "RootSite"
 
+  @spec discover_sharepoint_services(String.t) :: {:ok, [map]} | {:error, atom}
   defp discover_sharepoint_services(token) do
-    resp = Api.get(@services_url, token)
-    case resp do
-      %{"value" => services} ->
+    case Api.get(@services_url, token) do
+      {:ok, %{"value" => services}} ->
         services = for info <- services, is_sharepoint_service?(info) do
           %{resource_id: info["serviceResourceId"],
             endpoint_uri: info["serviceEndpointUri"],
@@ -101,6 +109,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     end
   end
 
+  @spec get_token([code: String.t, resource: String.t] | [refresh_token: String.t, resource: String.t]) :: post_result
   defp get_token([refresh_token: refresh_token, resource: resource]) do
     post_form @token_url, %{
       client_id: @client_id,
@@ -123,6 +132,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     }
   end
 
+  @spec post_form(String.t, map) :: post_result
   defp post_form(url, body) do
     body = URI.encode_query(body)
     decode_json_response HTTPoison.post(url, body, [{"Accept", "application/json"}, {"Content-Type", "application/x-www-form-urlencoded"}], @ssl_settings)

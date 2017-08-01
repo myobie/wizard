@@ -2,6 +2,8 @@ defmodule Wizard.Sharepoint.Drive do
   use Wizard.Schema
   alias Wizard.Sharepoint.{Drive, Site}
 
+  @type t :: %__MODULE__{}
+
   schema "sharepoint_drives" do
     belongs_to :site, Site
 

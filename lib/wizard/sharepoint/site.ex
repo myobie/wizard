@@ -2,6 +2,8 @@ defmodule Wizard.Sharepoint.Site do
   use Wizard.Schema
   alias Wizard.Sharepoint.{Service, Site}
 
+  @type t :: %__MODULE__{}
+
   schema "sharepoint_sites" do
     belongs_to :service, Service
 
