@@ -20,7 +20,7 @@ defmodule Wizard.Sharepoint.Drive do
     |> cast(attrs, [:remote_id, :name, :url, :type, :delta_link])
     |> validate_required([:remote_id, :name, :url, :type])
     |> foreign_key_constraint(:site_id)
-    |> unique_constraint(:remote_id)
+    |> unique_constraint(:remote_id, name: :sharepoint_items_remote_id_and_drive_id_index)
   end
 
   @doc false
