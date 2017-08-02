@@ -16,6 +16,6 @@ defmodule Wizard.Repo.Migrations.CreateWizard.Sharepoint.Item do
       timestamps()
     end
 
-    create unique_index(:sharepoint_drives, [:remote_id, :drive_id], name: :sharepoint_items_remote_id_and_drive_id_index)
+    create unique_index(:sharepoint_items, [:remote_id, :drive_id], name: :sharepoint_items_remote_id_and_drive_id_index)
   end
 end
