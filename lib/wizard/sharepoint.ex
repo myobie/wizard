@@ -189,7 +189,9 @@ defmodule Wizard.Sharepoint do
         try do
           Repo.get_by(Item, remote_id: remote_id, drive_id: drive.id)
         rescue
-          _ -> :database_error
+          error ->
+            Logger.error({:database_error, error})
+            :database_error
         end
     end
 
