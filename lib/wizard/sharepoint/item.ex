@@ -24,8 +24,8 @@ defmodule Wizard.Sharepoint.Item do
     # TODO: type is an enum
 
     item
-    |> cast(attrs, [:remote_id, :name, :type, :last_modified_at, :size, :url, :full_path])
-    |> validate_required([:remote_id, :name, :type, :last_modified_at, :size, :url, :full_path])
+    |> cast(attrs, [:remote_id, :name, :type, :last_modified_at, :size, :url])
+    |> validate_required([:remote_id, :name, :type, :last_modified_at, :size, :url])
     |> validate_length([:remote_id, :name], max: 255)
     |> validate_length(:url, max: 3072)
     |> changeset_constraints()
@@ -52,7 +52,6 @@ defmodule Wizard.Sharepoint.Item do
       last_modified_at: get_in(info, ["fileSystemInfo", "lastModifiedDateTime"]),
       size: info["size"],
       url: info["webUrl"],
-      full_path: "?",
       parent_remote_id: assoc_remote_parent_remote_id(info)
     }
   end
