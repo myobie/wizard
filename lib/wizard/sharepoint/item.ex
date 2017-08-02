@@ -14,7 +14,6 @@ defmodule Wizard.Sharepoint.Item do
     field :last_modified_at, :utc_datetime
     field :size, :integer
     field :url, :string
-    field :full_path, :string
 
     deleted_at()
     timestamps()
