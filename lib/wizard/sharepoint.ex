@@ -185,7 +185,7 @@ defmodule Wizard.Sharepoint do
   def insert_item(multi, info, [drive: drive]) do
     info = Item.parse_remote(info)
 
-    # FIXME: N+1 problem with parent lookup
+    # FIXME: This won't work, since a Multi.insert is deferred, so even if they arrive in order this will try to lookup something that hasn't actually be inserted yet
     parent = case info.parent_remote_id do
       nil -> nil
       remote_id ->
