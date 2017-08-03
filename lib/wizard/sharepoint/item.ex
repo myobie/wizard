@@ -56,6 +56,7 @@ defmodule Wizard.Sharepoint.Item do
     }
   end
 
+  defp remote_item_type(%{"root" => _}), do: "root"
   defp remote_item_type(%{"folder" => _}), do: "folder"
   defp remote_item_type(_), do: "file"
 
