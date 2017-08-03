@@ -179,7 +179,7 @@ defmodule Wizard.Sharepoint do
   end
 
   @item_conflict_options [on_conflict: :replace_all,
-                          conflict_target: :remote_id]
+                          conflict_target: [:remote_id, :drive_id]]
 
   @spec insert_item(Multi.t, map, [drive: Drive.t]) :: Multi.t
   def insert_item(multi, info, [drive: drive]) do
