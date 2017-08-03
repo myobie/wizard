@@ -173,8 +173,8 @@ defmodule Wizard.Sharepoint do
   end
 
   @spec item_changeset(map, [drive: Drive.t, parent: Item.t]) :: Ecto.Changeset.t
-  defp item_changeset(info, [drive: drive, parent: parent]) do
-    Item.changeset(%Item{}, info)
+  defp item_changeset(attrs, [drive: drive, parent: parent]) do
+    Item.changeset(%Item{}, attrs)
     |> put_assoc(:drive, drive)
     |> put_assoc(:parent, parent)
   end
@@ -228,9 +228,7 @@ defmodule Wizard.Sharepoint do
                  |> Enum.map(&Item.assoc_remote_parent_remote_id/1)
                  |> Enum.drop_while(&is_nil/1)
 
-    query = from i in Item,
-      where: i.remote_id in ^parent_ids,
-      select: [i.id, i.remote_id]
+    query = from i in Item, where: i.remote_id in ^parent_ids
 
     query
     |> Repo.all()
@@ -250,6 +248,8 @@ defmodule Wizard.Sharepoint do
   end
 
   @spec delete_remote_items(Multi.t, [map], [drive: Drive.t]) :: Multi.t
+  def delete_remote_items(multi, [], _), do: multi
+
   def delete_remote_items(multi, infos, [drive: %{id: drive_id}]) do
     remote_ids = for info <- infos, Map.has_key?(info, "id"), do: info["id"]
     query = from i in Item, where: i.remote_id in ^remote_ids, where: i.drive_id == ^drive_id
