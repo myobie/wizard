@@ -31,6 +31,7 @@ defmodule Wizard.Mixfile do
   defp deps do
     [{:phoenix, "~> 1.3.0-rc.3", override: true},
      {:phoenix_pubsub, "~> 1.0"},
+     {:ecto, "~> 2.1.6"},
      {:phoenix_ecto, "~> 3.2"},
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 2.6"},

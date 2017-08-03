@@ -11,9 +11,6 @@ defmodule Wizard.Sharepoint do
   alias Wizard.Sharepoint.{Api, Authorization, Drive, Item, Service, Site}
   alias Wizard.User
 
-  @spec transaction(Multi.t) :: transaction_result
-  def transaction(multi), do: Repo.transaction(multi)
-
   @spec authorize_url(String.t) :: String.t
   def authorize_url(state),
     do: Api.Authentication.authorize_url(state)
@@ -31,7 +28,7 @@ defmodule Wizard.Sharepoint do
   @spec insert_user_and_services(map, [map], [map]) :: transaction_result
   def insert_user_and_services(user_info, services_info, authorizations_info) do
     new_user_and_services(user_info, services_info, authorizations_info)
-    |> transaction()
+    |> Repo.transaction()
   end
 
   @spec reauthorize(Service.t, User.t) :: {:ok, Authorization.t} | {:error, Ecto.Changeset.t} | {:error, atom}
@@ -102,7 +99,7 @@ defmodule Wizard.Sharepoint do
 
   @spec insert_services([map]) :: {:ok, [Service.t]} | {:error, any}
   defp insert_services(infos) do
-    case Multi.new |> insert_services(infos) |> transaction() do
+    case Multi.new |> insert_services(infos) |> Repo.transaction() do
       {:ok, changes} ->
         services = for {{:service, _}, service} <- changes, do: service
         {:ok, services}
@@ -126,7 +123,7 @@ defmodule Wizard.Sharepoint do
 
   @spec insert_authorizations(%{services: [Service.t], user: User.t}, [map]) :: {:ok, [Authorization.t]} | {:error, any}
   defp insert_authorizations(%{services: services, user: user}, infos) do
-    case Multi.new |> insert_authorizations(user, services, infos) |> transaction() do
+    case Multi.new |> insert_authorizations(user, services, infos) |> Repo.transaction() do
       {:ok, changes} ->
         auths = for {{:authorization, _}, authorization} <- changes, do: authorization
         {:ok, auths}
@@ -231,7 +228,7 @@ defmodule Wizard.Sharepoint do
   def insert_or_delete_remote_items(infos, [drive: drive]) do
     Multi.new
     |> insert_or_delete_remote_items(infos, drive: drive)
-    |> transaction()
+    |> Repo.transaction()
   end
 
   @spec insert_or_delete_remote_items(Multi.t, [map], [drive: Drive.t]) :: Multi.t | no_return
