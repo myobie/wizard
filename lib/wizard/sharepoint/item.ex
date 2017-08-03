@@ -60,6 +60,6 @@ defmodule Wizard.Sharepoint.Item do
   defp remote_item_type(%{"folder" => _}), do: "folder"
   defp remote_item_type(_), do: "file"
 
-  defp assoc_remote_parent_remote_id(%{"parentReference" => %{"id" => parent_remote_id}}), do: parent_remote_id
-  defp assoc_remote_parent_remote_id(_), do: nil
+  def assoc_remote_parent_remote_id(%{"parentReference" => %{"id" => parent_remote_id}}), do: parent_remote_id
+  def assoc_remote_parent_remote_id(_), do: nil
 end

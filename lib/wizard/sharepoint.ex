@@ -1,8 +1,6 @@
 defmodule Wizard.Sharepoint do
   require Logger
 
-  @type transaction_result :: {:ok, any} | {:error, any} | {:error, any, any, any}
-
   import Ecto.Query, warn: false
   import Ecto.Changeset, only: [put_assoc: 3, fetch_field: 2]
   alias Ecto.Multi
@@ -10,6 +8,9 @@ defmodule Wizard.Sharepoint do
 
   alias Wizard.Sharepoint.{Api, Authorization, Drive, Item, Service, Site}
   alias Wizard.User
+
+  @type transaction_result :: {:ok, any} | {:error, any} | {:error, any, any, any}
+  @type parents :: %{optional(String.t) => Item.t}
 
   @spec authorize_url(String.t) :: String.t
   def authorize_url(state),
@@ -146,7 +147,7 @@ defmodule Wizard.Sharepoint do
     case Enum.find(services, &(&1.resource_id == info[:resource_id])) do
       nil ->
         Multi.error(multi,
-                    {:authorization, :missing_service},
+                    {:authorization, SecureRandom.hex()},
                     :missing_service_for_authorization_resource_id)
       service ->
         name = {:authorization, service.resource_id}
@@ -178,78 +179,92 @@ defmodule Wizard.Sharepoint do
     |> put_assoc(:parent, parent)
   end
 
+  @spec insert_remote_item(Multi.t, map, [drive: Drive.t, parents: parents]) :: Multi.t
+  def insert_remote_item(multi, info, [drive: drive, parents: parents]) do
+    attrs = Item.parse_remote(info)
+
+    case Map.fetch(parents, attrs.parent_remote_id) do
+      {:ok, parent} ->
+        insert_item(multi, attrs, drive: drive, parent: parent)
+      :error ->
+        Multi.run(multi, {:item, :insert, attrs.remote_id}, fn m ->
+          parent = Map.get(m, {:item, :insert, attrs.parent_remote_id})
+          if is_nil(parent) do
+            Logger.error("couldn't find a parent for #{inspect(attrs)}")
+          end
+          insert_item(attrs, drive: drive, parent: parent)
+        end)
+    end
+  end
+
   @item_conflict_options [on_conflict: :replace_all,
                           conflict_target: [:remote_id, :drive_id]]
 
-  @spec insert_item(Multi.t, map, [drive: Drive.t]) :: Multi.t
-  def insert_item(multi, info, [drive: drive]) do
-    info = Item.parse_remote(info)
-
-    # FIXME: This won't work, since a Multi.insert is deferred, so even if they arrive in order this will try to lookup something that hasn't actually be inserted yet
-    parent = case info.parent_remote_id do
-      nil -> nil
-      remote_id ->
-        try do
-          Repo.get_by(Item, remote_id: remote_id, drive_id: drive.id)
-        rescue
-          error ->
-            Logger.error({:database_error, error})
-            :database_error
-        end
-    end
-
-    case parent do
-      :database_error ->
-        multi |> Multi.error({:item, :database_error}, :database_error)
-
-      parent ->
-        changeset = info
-                    |> item_changeset(drive: drive, parent: parent)
-
-        case fetch_field(changeset, :remote_id) do
-          :error ->
-            multi
-            |> Multi.error({:item, :missing_remote_id}, :missing_item_remote_id)
-          {_, remote_id} ->
-            multi
-            |> Multi.insert({:item, :insert, remote_id}, changeset, @item_conflict_options)
-        end
-    end
+  @spec insert_item(map, [drive: Drive.t, parent: Item.t]) :: {:ok, Item.t} | {:error, Ecto.Changeset.t}
+  def insert_item(attrs, [drive: drive, parent: parent]) do
+    attrs
+    |> item_changeset(drive: drive, parent: parent)
+    |> Repo.insert(@item_conflict_options)
   end
 
-  @spec delete_item(Multi.t, String.t, [drive: Drive.t]) :: Multi.t
-  def delete_item(multi, remote_id, [drive: drive]) do
-    # FIXME: N+1 problem with item lookup
-    case Repo.get_by(Item, remote_id: remote_id, drive_id: drive.id) do
-      nil -> multi # NOTE: nothing to delete
-      item ->
-        changeset = Item.delete_changeset(item)
+  @spec insert_item(Multi.t, map, [drive: Drive.t, parent: Item.t]) :: Multi.t
+  def insert_item(multi, attrs, [drive: drive, parent: parent]) do
+    changeset = attrs
+                |> item_changeset(drive: drive, parent: parent)
 
+    case fetch_field(changeset, :remote_id) do
+      :error ->
         multi
-        |> Multi.update({:item, :delete, item.id}, changeset)
+        |> Multi.error({:item, SecureRandom.hex()}, :missing_item_remote_id)
+      {_, remote_id} ->
+        multi
+        |> Multi.insert({:item, :insert, remote_id}, changeset, @item_conflict_options)
     end
   end
 
-  @spec insert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result
+  @spec discover_parents([map]) :: parents | no_return
+  defp discover_parents(infos) do
+    parent_ids = infos
+                 |> Enum.map(&Item.assoc_remote_parent_remote_id/1)
+                 |> Enum.drop_while(&is_nil/1)
+
+    query = from i in Item,
+      where: i.remote_id in ^parent_ids,
+      select: [i.id, i.remote_id]
+
+    query
+    |> Repo.all()
+    |> Enum.group_by(&(&1.remote_id))
+  end
+
+  @spec insert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result | no_return
   def insert_or_delete_remote_items(infos, [drive: drive]) do
+    deletes = for info <- infos, Map.has_key?(info, "deleted"), do: info
+    inserts = infos -- deletes
+    parents = discover_parents(inserts)
+
     Multi.new
-    |> insert_or_delete_remote_items(infos, drive: drive)
+    |> delete_remote_items(deletes, drive: drive)
+    |> insert_remote_items(inserts, drive: drive, parents: parents)
     |> Repo.transaction()
   end
 
-  @spec insert_or_delete_remote_items(Multi.t, [map], [drive: Drive.t]) :: Multi.t | no_return
-  def insert_or_delete_remote_items(multi, [info | infos], [drive: drive]) do
-    case info do
-      %{"deleted" => _, "id" => remote_id} ->
-        multi
-        |> delete_item(remote_id, drive: drive)
-        |> insert_or_delete_remote_items(infos, drive: drive)
-      _ ->
-        multi
-        |> insert_item(info, drive: drive)
-        |> insert_or_delete_remote_items(infos, drive: drive) # NOTE: recurse
-    end
+  @spec delete_remote_items(Multi.t, [map], [drive: Drive.t]) :: Multi.t
+  def delete_remote_items(multi, infos, [drive: %{id: drive_id}]) do
+    remote_ids = for info <- infos, Map.has_key?(info, "id"), do: info["id"]
+    query = from i in Item, where: i.remote_id in ^remote_ids, where: i.drive_id == ^drive_id
+    attrs = [deleted_at: DateTime.utc_now()]
+
+    multi
+    |> Multi.update_all(:deletes, query, attrs)
   end
 
-  def insert_or_delete_remote_items(multi, [], [drive: _drive]), do: multi # NOTE: done
+  @spec insert_remote_items(Multi.t, [map], [drive: Drive.t, parents: parents]) :: Multi.t
+  def insert_remote_items(multi, [info | infos], [drive: drive, parents: parents]) do
+    multi
+    |> insert_remote_item(info, drive: drive, parents: parents)
+    |> insert_remote_items(infos, drive: drive, parents: parents) # NOTE: recurse
+  end
+
+  def insert_remote_items(multi, [], [drive: _drive, parents: _parents]), do: multi # NOTE: done
 end
