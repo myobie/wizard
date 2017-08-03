@@ -36,13 +36,19 @@ defmodule Wizard.Sharepoint do
     case Repo.get_by(Authorization, service_id: service.id, user_id: user.id) do
       nil -> {:error, :authorization_not_found}
       auth ->
-        case Api.Authentication.reauthorize_sharepoint_service(service, auth.refresh_token) do
-          {:ok, attrs} ->
-            Authorization.refresh_changeset(auth, attrs)
-            |> Repo.update()
-          error ->
-            error
-        end
+        auth = %{auth | service: service}
+        reauthorize(auth)
+    end
+  end
+
+  @spec reauthorize(Authorization.t) :: {:ok, Authorization.t} | {:error, Ecto.Changeset.t} | {:error, atom}
+  def reauthorize(%Authorization{service: %Service{} = service} = auth) do
+    case Api.Authentication.reauthorize_sharepoint_service(service, auth.refresh_token) do
+      {:ok, attrs} ->
+        Authorization.refresh_changeset(auth, attrs)
+        |> Repo.update()
+      error ->
+        error
     end
   end
 
