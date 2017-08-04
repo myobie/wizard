@@ -222,7 +222,7 @@ defmodule Wizard.Sharepoint do
     end
   end
 
-  @spec discover_parents([map]) :: parents | no_return
+  @spec discover_parents([map]) :: parents
   defp discover_parents(infos) do
     parent_ids = infos
                  |> Enum.map(&Item.assoc_remote_parent_remote_id/1)
@@ -235,7 +235,7 @@ defmodule Wizard.Sharepoint do
     |> Enum.group_by(&(&1.remote_id))
   end
 
-  @spec insert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result | no_return
+  @spec insert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result
   def insert_or_delete_remote_items(infos, [drive: drive]) do
     deletes = for info <- infos, Map.has_key?(info, "deleted"), do: info
     inserts = infos -- deletes
