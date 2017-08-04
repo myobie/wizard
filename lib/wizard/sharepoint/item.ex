@@ -44,6 +44,7 @@ defmodule Wizard.Sharepoint.Item do
     |> unique_constraint(:remote_id, name: :sharepoint_items_remote_id_and_drive_id_index)
   end
 
+  @spec parse_remote(map) :: map
   def parse_remote(info) do
     %{
       remote_id: info["id"],
@@ -56,10 +57,12 @@ defmodule Wizard.Sharepoint.Item do
     }
   end
 
+  @spec remote_item_type(map) :: String.t
   defp remote_item_type(%{"root" => _}), do: "root"
   defp remote_item_type(%{"folder" => _}), do: "folder"
   defp remote_item_type(_), do: "file"
 
+  @spec assoc_remote_parent_remote_id(map) :: nil | any
   def assoc_remote_parent_remote_id(%{"parentReference" => %{"id" => parent_remote_id}}), do: parent_remote_id
   def assoc_remote_parent_remote_id(_), do: nil
 end

@@ -1,5 +1,7 @@
 defmodule Wizard.Sharepoint.Api.Sites do
-  alias Wizard.Sharepoint.{Api, Authorization, Service, Site}
+  alias Wizard.Sharepoint.{Authorization, Service, Site}
+
+  @api_client Application.get_env(:wizard, :sharepoint_api_client)
 
   @spec search(Authorization.t, Service.t, String.t) :: [map]
   def search(authorization, service, query) do
@@ -7,7 +9,7 @@ defmodule Wizard.Sharepoint.Api.Sites do
     uri = URI.parse("#{service.endpoint_uri}/v2.0/sites")
     url = to_string(%{uri | query: params})
 
-    case Api.get(url, authorization.access_token) do
+    case @api_client.get(url, authorization.access_token) do
       {:ok, %{"value" => value}} -> process_sites(value)
       _ -> []
     end
@@ -29,7 +31,7 @@ defmodule Wizard.Sharepoint.Api.Sites do
   def drives(authorization, site) do
     url = "#{site.service.endpoint_uri}/v2.0/sites/#{site.remote_id}/drives"
 
-    case Api.get(url, authorization.access_token) do
+    case @api_client.get(url, authorization.access_token) do
       {:ok, %{"value" => value}} -> process_drives(value)
       _ -> []
     end

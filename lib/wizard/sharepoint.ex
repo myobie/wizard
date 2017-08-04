@@ -6,19 +6,20 @@ defmodule Wizard.Sharepoint do
   alias Ecto.Multi
   alias Wizard.Repo
 
-  alias Wizard.Sharepoint.{Api, Authorization, Drive, Item, Service, Site}
+  alias Wizard.Sharepoint.{Authorization, Drive, Item, Service, Site}
   alias Wizard.User
+  alias Wizard.Sharepoint.Api.{Authentication, Sites}
 
   @type transaction_result :: {:ok, any} | {:error, any} | {:error, any, any, any}
   @type parents :: %{optional(String.t) => Item.t}
 
   @spec authorize_url(String.t) :: String.t
   def authorize_url(state),
-    do: Api.Authentication.authorize_url(state)
+    do: Authentication.authorize_url(state)
 
   @spec authorize_sharepoints(String.t) :: transaction_result
   def authorize_sharepoints(code) do
-    case Api.Authentication.authorize_sharepoints(code) do
+    case Authentication.authorize_sharepoints(code) do
       {:ok, user_info, services_info, authorizations_info} ->
         insert_user_and_services(user_info, services_info, authorizations_info)
       error ->
@@ -44,7 +45,7 @@ defmodule Wizard.Sharepoint do
 
   @spec reauthorize(Authorization.t) :: {:ok, Authorization.t} | {:error, Ecto.Changeset.t} | {:error, atom}
   def reauthorize(%Authorization{service: %Service{} = service} = auth) do
-    case Api.Authentication.reauthorize_sharepoint_service(service, auth.refresh_token) do
+    case Authentication.reauthorize_sharepoint_service(service, auth.refresh_token) do
       {:ok, attrs} ->
         Authorization.refresh_changeset(auth, attrs)
         |> Repo.update()
@@ -57,7 +58,7 @@ defmodule Wizard.Sharepoint do
   def remotely_search_sites(service, user, query) do
     case Repo.get_by(Authorization, service_id: service.id, user_id: user.id) do
       nil -> {:error, :unauthorized}
-      auth -> Api.Sites.search(auth, service, query)
+      auth -> Sites.search(auth, service, query)
     end
   end
 
@@ -67,7 +68,7 @@ defmodule Wizard.Sharepoint do
 
     case Repo.get_by(Authorization, service_id: site.service.id, user_id: user.id) do
       nil -> {:error, :unauthorized}
-      auth -> Api.Sites.drives(auth, site)
+      auth -> Sites.drives(auth, site)
     end
   end
 
@@ -172,7 +173,12 @@ defmodule Wizard.Sharepoint do
     |> Multi.run(:authorizations, &(insert_authorizations(&1, authorizations_info)))
   end
 
-  @spec item_changeset(map, [drive: Drive.t, parent: Item.t]) :: Ecto.Changeset.t
+  @spec item_changeset(map, [drive: Drive.t, parent: Item.t | nil]) :: Ecto.Changeset.t
+  defp item_changeset(attrs, [drive: drive, parent: nil]) do
+    Item.changeset(%Item{}, attrs)
+    |> put_assoc(:drive, drive)
+  end
+
   defp item_changeset(attrs, [drive: drive, parent: parent]) do
     Item.changeset(%Item{}, attrs)
     |> put_assoc(:drive, drive)
@@ -183,17 +189,21 @@ defmodule Wizard.Sharepoint do
   def insert_remote_item(multi, info, [drive: drive, parents: parents]) do
     attrs = Item.parse_remote(info)
 
-    case Map.fetch(parents, attrs.parent_remote_id) do
-      {:ok, parent} ->
-        insert_item(multi, attrs, drive: drive, parent: parent)
-      :error ->
-        Multi.run(multi, {:item, :insert, attrs.remote_id}, fn m ->
-          parent = Map.get(m, {:item, :insert, attrs.parent_remote_id})
-          if is_nil(parent) do
-            Logger.error("couldn't find a parent for #{inspect(attrs)}")
-          end
-          insert_item(attrs, drive: drive, parent: parent)
-        end)
+    if is_nil(attrs.parent_remote_id) do
+      insert_item(multi, attrs, drive: drive, parent: nil)
+    else
+      case Map.fetch(parents, attrs.parent_remote_id) do
+        {:ok, parent} ->
+          insert_item(multi, attrs, drive: drive, parent: parent)
+        :error ->
+          Multi.run(multi, {:item, :insert, attrs.remote_id}, fn m ->
+            parent = Map.get(m, {:item, :insert, attrs.parent_remote_id})
+            if is_nil(parent) do
+              Logger.error("couldn't find a parent for #{inspect(attrs)}")
+            end
+            insert_item(attrs, drive: drive, parent: parent)
+          end)
+      end
     end
   end
 

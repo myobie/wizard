@@ -9,6 +9,10 @@ use Mix.Config
 config :wizard,
   ecto_repos: [Wizard.Repo]
 
+# Default Sharepoint api client implementation
+config :wizard,
+  sharepoint_api_client: Wizard.Sharepoint.Api
+
 # Configures the endpoint
 config :wizard, WizardWeb.Endpoint,
   url: [host: "localhost"],
