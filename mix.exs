@@ -29,7 +29,7 @@ defmodule Wizard.Mixfile do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    [{:phoenix, "~> 1.3.0-rc.3", override: true},
+    [{:phoenix, "~> 1.3"},
      {:phoenix_pubsub, "~> 1.0"},
      {:ecto, "~> 2.1.6"},
      {:phoenix_ecto, "~> 3.2"},
@@ -39,7 +39,7 @@ defmodule Wizard.Mixfile do
      {:gettext, "~> 0.11"},
      {:cowboy, "~> 1.0"},
      {:secure_random, "~> 0.5"},
-     {:httpoison, "~> 0.11.1"},
+     {:httpoison, "~> 0.13"},
      {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
      {:guardian, "~> 0.14"},
      {:jose, "~> 1.8"},

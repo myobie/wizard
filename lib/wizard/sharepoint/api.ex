@@ -1,44 +1,68 @@
 defmodule Wizard.Sharepoint.Api do
   require Logger
+  use Wizard.ApiClient
 
-  @type headers :: [{String.t, String.t}]
-  @type json :: Poison.Parser.t
   @type response :: HTTPoison.Response.t
-  @type parse_result :: {:ok, json} | {:error, any}
 
-  @ssl_settings [ssl: [{:versions, [:'tlsv1.2']}]]
   @accept_header [{"Accept", "application/json;odata.metadata=full"}]
-  @content_type_header [{"Content-Type", "application/json"}]
+  @json_content_type_header [{"Content-Type", "application/json"}]
+  @form_content_type_header [{"Content-Type", "application/x-www-form-urlencoded"}]
 
-  @spec get(String.t, String.t) :: parse_result
-  def get(url, access_token) do
-    h = headers(access_token)
+  def get(url, opts \\ []) do
+    h = headers(opts)
     Logger.debug inspect({:getting, url, h})
-    decode_json_response HTTPoison.get(url, h, @ssl_settings)
+    decode_json_response HTTPoison.get(url, h)
   end
 
-  @spec post(String.t, json, String.t) :: parse_result
-  def post(url, body, access_token) do
+  def post(url, body, opts \\ []) do
     json = Poison.encode!(body)
-    h = headers(access_token, @content_type_header)
+    opts = opts ++ [additional_headers: @json_content_type_header]
+    h = headers(opts)
     Logger.debug inspect({:posting, url, h, json})
-    decode_json_response HTTPoison.post(url, json, h, @ssl_settings)
+    decode_json_response HTTPoison.post(url, json, h)
   end
 
-  @spec delete(String.t, String.t) :: parse_result
-  def delete(url, access_token) do
-    h = headers(access_token)
+  def post_form(url, body, opts \\ []) do
+    body = URI.encode_query(body)
+    opts = opts ++ [additional_headers: @form_content_type_header]
+    h = headers(opts)
+    Logger.debug inspect({:posting_form, url, body})
+    decode_json_response HTTPoison.post(url, body, h)
+  end
+
+  def delete(url, opts \\ []) do
+    h = headers(opts)
     Logger.debug inspect({:deleting, url, h})
-    decode_json_response HTTPoison.delete(url, h, @ssl_settings)
+    decode_json_response HTTPoison.delete(url, h)
   end
 
-  @spec headers(String.t, headers) :: headers
-  def headers(access_token, additional_headers \\ []) do
-    @accept_header ++ additional_headers ++ [{"Authorization", "Bearer #{access_token}"}]
+  @spec access_token_header(Keyword.t) :: ApiClient.headers
+  defp access_token_header(opts) do
+    case Keyword.get(opts, :access_token) do
+      nil -> []
+      token -> [{"Authorization", "Bearer #{token}"}]
+    end
   end
 
-  @spec decode_json_response({:ok | :error, response}) :: parse_result
-  def decode_json_response(resp) do
+  defp additional_headers(opts) do
+    case Keyword.get(opts, :additional_headers) do
+      nil -> []
+      headers ->
+        if Keyword.keyword?(headers) do
+          headers
+        else
+          []
+        end
+    end
+  end
+
+  @spec headers(Keyword.t) :: ApiClient.headers
+  defp headers(opts) do
+    @accept_header ++ access_token_header(opts) ++ additional_headers(opts)
+  end
+
+  @spec decode_json_response({:ok | :error, response}) :: ApiClient.result
+  defp decode_json_response(resp) do
     case resp do
       {:ok, %HTTPoison.Response{status_code: 200, body: body} = response} ->
         Logger.debug inspect({:response, response})

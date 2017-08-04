@@ -1,7 +1,6 @@
 defmodule Wizard.Sharepoint.Api.Authentication do
   require Logger
-
-  @type post_result :: {:ok, map} | {:ok, nil} | {:error, any}
+  alias Wizard.ApiClient
 
   @client_id Application.fetch_env!(:wizard, :aad_client_id)
   @client_secret Application.fetch_env!(:wizard, :aad_client_secret)
@@ -12,10 +11,8 @@ defmodule Wizard.Sharepoint.Api.Authentication do
   @services_url "https://api.office.com/discovery/v2.0/me/services"
   @token_url "#{@base_url}/token"
   @response_type "code"
-  @ssl_settings [ssl: [{:versions, [:'tlsv1.2']}]]
 
   alias Wizard.Sharepoint.{Api, Service}
-  import Api, only: [decode_json_response: 1]
 
   @spec authorize_url(String.t) :: String.t
   def authorize_url(state) do
@@ -95,7 +92,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
 
   @spec discover_sharepoint_services(String.t) :: {:ok, [map]} | {:error, atom}
   defp discover_sharepoint_services(token) do
-    case Api.get(@services_url, token) do
+    case Api.get(@services_url, access_token: token) do
       {:ok, %{"value" => services}} ->
         services = for info <- services, is_sharepoint_service?(info) do
           %{resource_id: info["serviceResourceId"],
@@ -109,9 +106,9 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     end
   end
 
-  @spec get_token([code: String.t, resource: String.t] | [refresh_token: String.t, resource: String.t]) :: post_result
+  @spec get_token([code: String.t, resource: String.t] | [refresh_token: String.t, resource: String.t]) :: ApiClient.result
   defp get_token([refresh_token: refresh_token, resource: resource]) do
-    post_form @token_url, %{
+    Api.post_form @token_url, %{
       client_id: @client_id,
       client_secret: @client_secret,
       redirect_uri: @redirect_url,
@@ -122,7 +119,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
   end
 
   defp get_token([code: code, resource: resource]) do
-    post_form @token_url, %{
+    Api.post_form @token_url, %{
       client_id: @client_id,
       client_secret: @client_secret,
       redirect_uri: @redirect_url,
@@ -130,11 +127,5 @@ defmodule Wizard.Sharepoint.Api.Authentication do
       resource: resource,
       grant_type: :authorization_code
     }
-  end
-
-  @spec post_form(String.t, map) :: post_result
-  defp post_form(url, body) do
-    body = URI.encode_query(body)
-    decode_json_response HTTPoison.post(url, body, [{"Accept", "application/json"}, {"Content-Type", "application/x-www-form-urlencoded"}], @ssl_settings)
   end
 end
