@@ -200,8 +200,10 @@ defmodule Wizard.Sharepoint do
             parent = Map.get(m, {:item, :insert, attrs.parent_remote_id})
             if is_nil(parent) do
               Logger.error("couldn't find a parent for #{inspect(attrs)}")
+              {:error, :missing_parent_record}
+            else
+              insert_item(attrs, drive: drive, parent: parent)
             end
-            insert_item(attrs, drive: drive, parent: parent)
           end)
       end
     end
@@ -232,24 +234,26 @@ defmodule Wizard.Sharepoint do
     end
   end
 
-  @spec discover_parents([map]) :: parents
-  defp discover_parents(infos) do
+  @spec discover_parents([map], [drive: Drive.t]) :: parents
+  def discover_parents(infos, [drive: %{id: drive_id}]) do
     parent_ids = infos
                  |> Enum.map(&Item.assoc_remote_parent_remote_id/1)
                  |> Enum.drop_while(&is_nil/1)
 
-    query = from i in Item, where: i.remote_id in ^parent_ids
+    query = from i in Item,
+              where: i.remote_id in ^parent_ids,
+              where: i.drive_id == ^drive_id
 
-    query
-    |> Repo.all()
-    |> Enum.group_by(&(&1.remote_id))
+    items = query |> Repo.all()
+
+    for item <- items, into: %{}, do: {item.remote_id, item}
   end
 
   @spec insert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result
   def insert_or_delete_remote_items(infos, [drive: drive]) do
     deletes = for info <- infos, Map.has_key?(info, "deleted"), do: info
     inserts = infos -- deletes
-    parents = discover_parents(inserts)
+    parents = discover_parents(inserts, drive: drive)
 
     Multi.new
     |> delete_remote_items(deletes, drive: drive)
