@@ -29,6 +29,7 @@ defmodule WizardWeb.ChannelCase do
   setup tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Wizard.Repo)
     unless tags[:async] do
+      :ok = Wizard.TestApiClient.clear()
       Ecto.Adapters.SQL.Sandbox.mode(Wizard.Repo, {:shared, self()})
     end
     :ok
