@@ -40,12 +40,12 @@ defmodule Wizard.Mixfile do
      {:cowboy, "~> 1.0"},
      {:secure_random, "~> 0.5"},
      {:httpoison, "~> 0.13"},
-     {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
      {:guardian, "~> 0.14"},
      {:jose, "~> 1.8"},
      {:timex, "~> 3.0"},
-     {:csv, "~> 2.0.0"},
-     {:quick_alias, "~> 0.1.0", only: [:dev], runtime: false}]
+     {:ex_machina, "~> 2.0", only: :test},
+     {:dialyxir, "~> 0.5", only: :dev, runtime: false},
+     {:quick_alias, "~> 0.1.0", only: :dev, runtime: false}]
   end
 
   # Aliases are shortcuts or tasks specific to the current project.

@@ -11,7 +11,7 @@ defmodule Wizard.Sharepoint.Api do
   def get(url, opts \\ []) do
     h = headers(opts)
     Logger.debug inspect({:getting, url, h})
-    decode_json_response HTTPoison.get(url, h)
+    decode_json_response HTTPoison.get(url, h, [])
   end
 
   def post(url, body, opts \\ []) do
@@ -19,21 +19,21 @@ defmodule Wizard.Sharepoint.Api do
     opts = opts ++ [additional_headers: @json_content_type_header]
     h = headers(opts)
     Logger.debug inspect({:posting, url, h, json})
-    decode_json_response HTTPoison.post(url, json, h)
+    decode_json_response HTTPoison.post(url, json, h, [])
   end
 
   def post_form(url, body, opts \\ []) do
     body = URI.encode_query(body)
     opts = opts ++ [additional_headers: @form_content_type_header]
     h = headers(opts)
-    Logger.debug inspect({:posting_form, url, body})
-    decode_json_response HTTPoison.post(url, body, h)
+    Logger.debug inspect({:posting_form, url, h, body})
+    decode_json_response HTTPoison.post(url, body, h, [])
   end
 
   def delete(url, opts \\ []) do
     h = headers(opts)
     Logger.debug inspect({:deleting, url, h})
-    decode_json_response HTTPoison.delete(url, h)
+    decode_json_response HTTPoison.delete(url, h, [])
   end
 
   @spec access_token_header(Keyword.t) :: ApiClient.headers
@@ -47,12 +47,7 @@ defmodule Wizard.Sharepoint.Api do
   defp additional_headers(opts) do
     case Keyword.get(opts, :additional_headers) do
       nil -> []
-      headers ->
-        if Keyword.keyword?(headers) do
-          headers
-        else
-          []
-        end
+      headers -> headers
     end
   end
 
@@ -63,6 +58,13 @@ defmodule Wizard.Sharepoint.Api do
 
   @spec decode_json_response({:ok | :error, response}) :: ApiClient.result
   defp decode_json_response(resp) do
+    {_, r} = resp
+    IO.puts("########################################")
+    IO.puts("#{r.status_code} - #{r.request_url}")
+    IO.puts("########################################")
+    IO.puts(r.body)
+    IO.puts("########################################")
+
     case resp do
       {:ok, %HTTPoison.Response{status_code: 200, body: body} = response} ->
         Logger.debug inspect({:response, response})

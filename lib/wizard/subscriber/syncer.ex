@@ -1,7 +1,8 @@
 defmodule Wizard.Subscriber.Syncer do
-  alias Wizard.Sharepoint.Api
   alias Wizard.Sharepoint
   alias Wizard.Subscriber
+
+  @api_client Application.get_env(:wizard, :sharepoint_api_client)
 
   use GenServer
   require Logger
@@ -42,19 +43,19 @@ defmodule Wizard.Subscriber.Syncer do
   defp fetch(%{done: true} = state), do: {:ok, state} # NOTE: done
 
   defp fetch(%{subscriber: subscriber, access_token: access_token, delta_link: nil, next_link: nil} = state) do
-    Api.get(delta_link_url(subscriber), access_token)
+    @api_client.get(delta_link_url(subscriber), access_token: access_token)
     |> process(state)
     |> fetch()
   end
 
   defp fetch(%{access_token: access_token, delta_link: nil, next_link: next_link} = state) do
-    Api.get(next_link, access_token)
+    @api_client.get(next_link, access_token: access_token)
     |> process(state)
     |> fetch()
   end
 
   defp fetch(%{access_token: access_token, delta_link: delta_link, next_link: nil} = state) do
-    Api.get(delta_link, access_token)
+    @api_client.get(delta_link, access_token: access_token)
     |> process(state)
     |> fetch()
   end
