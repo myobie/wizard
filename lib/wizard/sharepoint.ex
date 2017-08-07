@@ -235,6 +235,8 @@ defmodule Wizard.Sharepoint do
   end
 
   @spec discover_parents([map], [drive: Drive.t]) :: parents
+  def discover_parents([], _), do: %{}
+
   def discover_parents(infos, [drive: %{id: drive_id}]) do
     parent_ids = infos
                  |> Enum.map(&Item.assoc_remote_parent_remote_id/1)
