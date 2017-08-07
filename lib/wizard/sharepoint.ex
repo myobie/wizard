@@ -267,12 +267,15 @@ defmodule Wizard.Sharepoint do
   def delete_remote_items(multi, [], _), do: multi
 
   def delete_remote_items(multi, infos, [drive: %{id: drive_id}]) do
+    now = DateTime.utc_now()
     remote_ids = for info <- infos, Map.has_key?(info, "id"), do: info["id"]
-    query = from i in Item, where: i.remote_id in ^remote_ids, where: i.drive_id == ^drive_id
-    attrs = [deleted_at: DateTime.utc_now()]
+    query = from i in Item,
+              where: i.remote_id in ^remote_ids,
+              where: i.drive_id == ^drive_id,
+              update: [set: [deleted_at: ^now]]
 
     multi
-    |> Multi.update_all(:deletes, query, attrs)
+    |> Multi.update_all(:deletes, query, [])
   end
 
   @spec insert_remote_items(Multi.t, [map], [drive: Drive.t, parents: parents]) :: Multi.t
