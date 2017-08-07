@@ -1,0 +1,11 @@
+{
+  "token_type":"Bearer",
+  "scope":"email Files.Read Files.Read.All Files.Read.Selected offline_access openid profile Sites.Read.All User.Read",
+  "expires_in":"3599",
+  "ext_expires_in":"0",
+  "expires_on":"1501946772",
+  "not_before":"1901942872",
+  "resource":"https://sharepoint.example.com/",
+  "access_token":"abc",
+  "refresh_token":"xyz"
+}
