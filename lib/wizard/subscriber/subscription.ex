@@ -2,6 +2,8 @@ defmodule Wizard.Subscriber.Subscription do
   use Wizard.Schema
   alias Wizard.{Sharepoint, User}
 
+  @type t :: %__MODULE__{}
+
   schema "subscriptions" do
     belongs_to :user, User
     belongs_to :drive, Sharepoint.Drive

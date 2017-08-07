@@ -18,12 +18,12 @@ defmodule Wizard.Subscriber.Syncer do
     }}
   end
 
-  def start_link(%Subscriber{} = subscriber) do
-    GenServer.start_link(__MODULE__, subscriber, [])
+  def start(%Subscriber{} = subscriber) do
+    GenServer.start(__MODULE__, subscriber, [])
   end
 
-  def start_link_and_sync(%Subscriber{} = subscriber) do
-    {:ok, pid} = start_link(subscriber)
+  def start_and_sync(%Subscriber{} = subscriber) do
+    {:ok, pid} = start(subscriber)
     GenServer.cast(pid, :sync)
     {:ok, pid}
   end
