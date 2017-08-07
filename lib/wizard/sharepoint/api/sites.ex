@@ -9,7 +9,7 @@ defmodule Wizard.Sharepoint.Api.Sites do
     uri = URI.parse("#{service.endpoint_uri}/v2.0/sites")
     url = to_string(%{uri | query: params})
 
-    case @api_client.get(url, authorization.access_token) do
+    case @api_client.get(url, access_token: authorization.access_token) do
       {:ok, %{"value" => value}} -> process_sites(value)
       _ -> []
     end
@@ -31,7 +31,7 @@ defmodule Wizard.Sharepoint.Api.Sites do
   def drives(authorization, site) do
     url = "#{site.service.endpoint_uri}/v2.0/sites/#{site.remote_id}/drives"
 
-    case @api_client.get(url, authorization.access_token) do
+    case @api_client.get(url, access_token: authorization.access_token) do
       {:ok, %{"value" => value}} -> process_drives(value)
       _ -> []
     end
