@@ -31,7 +31,7 @@ defmodule Wizard.Mixfile do
   defp deps do
     [{:phoenix, "~> 1.3"},
      {:phoenix_pubsub, "~> 1.0"},
-     {:ecto, "~> 2.1.6"},
+     {:ecto, "2.2.0-rc.0", override: true},
      {:phoenix_ecto, "~> 3.2"},
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 2.6"},
@@ -43,7 +43,7 @@ defmodule Wizard.Mixfile do
      {:guardian, "~> 0.14"},
      {:jose, "~> 1.8"},
      {:timex, "~> 3.0"},
-     {:ex_machina, "~> 2.0", only: :test},
+     {:ex_machina, git: "https://github.com/myobie/ex_machina.git", only: :test},
      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
      {:quick_alias, "~> 0.1.0", only: :dev, runtime: false}]
   end
