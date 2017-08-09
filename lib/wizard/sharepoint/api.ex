@@ -58,12 +58,18 @@ defmodule Wizard.Sharepoint.Api do
 
   @spec decode_json_response({:ok | :error, response}) :: ApiClient.result
   defp decode_json_response(resp) do
-    {_, r} = resp
-    IO.puts("########################################")
-    IO.puts("#{r.status_code} - #{r.request_url}")
-    IO.puts("########################################")
-    IO.puts(r.body)
-    IO.puts("########################################")
+    case resp do
+      {:ok, r} ->
+        IO.puts("########################################")
+        IO.puts("#{r.status_code} - #{r.request_url}")
+        IO.puts("########################################")
+        IO.puts(r.body)
+        IO.puts("########################################")
+      {:error, error} ->
+        IO.puts("########################################")
+        IO.puts(inspect(error))
+        IO.puts("########################################")
+    end
 
     case resp do
       {:ok, %HTTPoison.Response{status_code: 200, body: body} = response} ->

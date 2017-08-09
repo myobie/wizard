@@ -200,8 +200,10 @@ defmodule Wizard.Sharepoint do
             parent = Map.get(m, {:item, :insert, attrs.parent_remote_id})
             if is_nil(parent) do
               Logger.error("couldn't find a parent for #{inspect(attrs)}")
+              {:error, :missing_parent_record}
+            else
+              insert_item(attrs, drive: drive, parent: parent)
             end
-            insert_item(attrs, drive: drive, parent: parent)
           end)
       end
     end
@@ -232,24 +234,28 @@ defmodule Wizard.Sharepoint do
     end
   end
 
-  @spec discover_parents([map]) :: parents
-  defp discover_parents(infos) do
+  @spec discover_parents([map], [drive: Drive.t]) :: parents
+  def discover_parents([], _), do: %{}
+
+  def discover_parents(infos, [drive: %{id: drive_id}]) do
     parent_ids = infos
                  |> Enum.map(&Item.assoc_remote_parent_remote_id/1)
                  |> Enum.drop_while(&is_nil/1)
 
-    query = from i in Item, where: i.remote_id in ^parent_ids
+    query = from i in Item,
+              where: i.remote_id in ^parent_ids,
+              where: i.drive_id == ^drive_id
 
-    query
-    |> Repo.all()
-    |> Enum.group_by(&(&1.remote_id))
+    items = query |> Repo.all()
+
+    for item <- items, into: %{}, do: {item.remote_id, item}
   end
 
   @spec insert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result
   def insert_or_delete_remote_items(infos, [drive: drive]) do
     deletes = for info <- infos, Map.has_key?(info, "deleted"), do: info
     inserts = infos -- deletes
-    parents = discover_parents(inserts)
+    parents = discover_parents(inserts, drive: drive)
 
     Multi.new
     |> delete_remote_items(deletes, drive: drive)
@@ -261,12 +267,15 @@ defmodule Wizard.Sharepoint do
   def delete_remote_items(multi, [], _), do: multi
 
   def delete_remote_items(multi, infos, [drive: %{id: drive_id}]) do
+    now = DateTime.utc_now()
     remote_ids = for info <- infos, Map.has_key?(info, "id"), do: info["id"]
-    query = from i in Item, where: i.remote_id in ^remote_ids, where: i.drive_id == ^drive_id
-    attrs = [deleted_at: DateTime.utc_now()]
+    query = from i in Item,
+              where: i.remote_id in ^remote_ids,
+              where: i.drive_id == ^drive_id,
+              update: [set: [deleted_at: ^now]]
 
     multi
-    |> Multi.update_all(:deletes, query, attrs)
+    |> Multi.update_all(:deletes, query, [])
   end
 
   @spec insert_remote_items(Multi.t, [map], [drive: Drive.t, parents: parents]) :: Multi.t
