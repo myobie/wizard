@@ -19,8 +19,12 @@ defmodule Wizard.Sharepoint.Item do
     timestamps()
   end
 
-  @doc false
-  def changeset(%Item{} = item, attrs) do
+  @spec changeset(map, [drive: Drive.t, parent: t] | [drive: Drive.t]) :: Ecto.Changeset.t
+  @spec changeset(t, map, [drive: Drive.t, parent: t] | [drive: Drive.t]) :: Ecto.Changeset.t
+
+  def changeset(item \\ %Item{}, attrs, list)
+
+  def changeset(%Item{} = item, attrs, [drive: drive]) do
     # TODO: type is an enum
 
     item
@@ -29,6 +33,12 @@ defmodule Wizard.Sharepoint.Item do
     |> validate_length([:remote_id, :name], max: 255)
     |> validate_length(:url, max: 3072)
     |> changeset_constraints()
+    |> put_assoc(:drive, drive)
+  end
+
+  def changeset(%Item{} = item, attrs, [drive: drive, parent: parent]) do
+    changeset(item, attrs, drive: drive)
+    |> put_assoc(:parent, parent)
   end
 
   def delete_changeset(%Item{} = item) do

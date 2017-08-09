@@ -2,7 +2,7 @@ defmodule Wizard.Sharepoint do
   require Logger
 
   import Ecto.Query, warn: false
-  import Ecto.Changeset, only: [put_assoc: 3, fetch_field: 2]
+  import Ecto.Changeset, only: [fetch_field: 2]
   alias Ecto.Multi
   alias Wizard.Repo
 
@@ -74,15 +74,13 @@ defmodule Wizard.Sharepoint do
 
   @spec insert_site(map, [service: Service.t]) :: {:ok, Site.t} | {:error, Ecto.Changeset.t}
   def insert_site(attrs, [service: service]) do
-    Site.changeset(%Site{}, attrs)
-    |> put_assoc(:service, service)
+    Site.changeset(attrs, service: service)
     |> Repo.insert()
   end
 
   @spec insert_drive(map, [site: Site.t]) :: {:ok, Drive.t} | {:error, Ecto.Changeset.t}
   def insert_drive(attrs, [site: site]) do
-    Drive.changeset(%Drive{}, attrs)
-    |> put_assoc(:site, site)
+    Drive.changeset(attrs, site: site)
     |> Repo.insert()
   end
 
@@ -118,7 +116,7 @@ defmodule Wizard.Sharepoint do
 
   @spec insert_services(Multi.t, [map]) :: Multi.t
   defp insert_services(multi, [info | infos]) do
-    changeset = Service.changeset(%Service{}, info)
+    changeset = Service.changeset(info)
     {_, resource_id} = fetch_field(changeset, :resource_id)
     name = {:service, resource_id}
 
@@ -153,9 +151,7 @@ defmodule Wizard.Sharepoint do
       service ->
         name = {:authorization, service.resource_id}
 
-        changeset = Authorization.changeset(%Authorization{}, info)
-        |> put_assoc(:user, user)
-        |> put_assoc(:service, service)
+        changeset = Authorization.changeset(info, user: user, service: service)
 
         multi
         |> Multi.insert(name, changeset, @authorization_conflict_options)
@@ -175,14 +171,11 @@ defmodule Wizard.Sharepoint do
 
   @spec item_changeset(map, [drive: Drive.t, parent: Item.t | nil]) :: Ecto.Changeset.t
   defp item_changeset(attrs, [drive: drive, parent: nil]) do
-    Item.changeset(%Item{}, attrs)
-    |> put_assoc(:drive, drive)
+    Item.changeset(attrs, drive: drive)
   end
 
   defp item_changeset(attrs, [drive: drive, parent: parent]) do
-    Item.changeset(%Item{}, attrs)
-    |> put_assoc(:drive, drive)
-    |> put_assoc(:parent, parent)
+    Item.changeset(attrs, drive: drive, parent: parent)
   end
 
   @spec insert_remote_item(Multi.t, map, [drive: Drive.t, parents: parents]) :: Multi.t

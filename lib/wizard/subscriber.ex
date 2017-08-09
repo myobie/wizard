@@ -3,8 +3,6 @@ defmodule Wizard.Subscriber do
   alias Wizard.Sharepoint.{Authorization, Drive}
   alias Wizard.Subscriber.{Server, Subscription}
 
-  import Ecto.Changeset, only: [put_assoc: 3]
-
   defstruct subscription: nil, pid: nil, authorization: nil
 
   defmodule AuthorizationNotFoundError do
@@ -23,9 +21,7 @@ defmodule Wizard.Subscriber do
 
   @spec insert_subscription([drive: Drive.t, user: User.t]) :: {:ok, Subscription.t} | {:error, Ecto.Changeset.t}
   def insert_subscription([drive: drive, user: user]) do
-    Subscription.changeset()
-    |> put_assoc(:drive, drive)
-    |> put_assoc(:user, user)
+    Subscription.changeset(drive: drive, user: user)
     |> Repo.insert()
   end
 

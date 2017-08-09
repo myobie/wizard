@@ -16,8 +16,9 @@ defmodule Wizard.Sharepoint.Drive do
     timestamps()
   end
 
-  @doc false
-  def changeset(%Drive{} = drive, attrs) do
+  @spec changeset(map, [site: Site.t]) :: Ecto.Changeset.t
+  @spec changeset(t, map, [site: Site.t]) :: Ecto.Changeset.t
+  def changeset(%Drive{} = drive \\ %Drive{}, attrs, [site: site]) do
     # TODO: type is an enum
 
     drive
@@ -28,6 +29,7 @@ defmodule Wizard.Sharepoint.Drive do
     |> validate_length(:delta_link, max: 2048)
     |> foreign_key_constraint(:site_id)
     |> unique_constraint(:remote_id)
+    |> put_assoc(:site, site)
   end
 
   @doc false

@@ -16,7 +16,9 @@ defmodule Wizard.Sharepoint.Site do
     timestamps()
   end
 
-  def changeset(%Site{} = site, attrs) do
+  @spec changeset(map, [service: Service.t]) :: Ecto.Changeset.t
+  @spec changeset(t, map, [service: Service.t]) :: Ecto.Changeset.t
+  def changeset(%Site{} = site \\ %Site{}, attrs, [service: service]) do
     site
     |> cast(attrs, [:remote_id, :hostname, :title, :url, :description])
     |> validate_required([:remote_id, :hostname, :title, :url])
@@ -25,6 +27,7 @@ defmodule Wizard.Sharepoint.Site do
     |> truncate_length(:description, 2048)
     |> foreign_key_constraint(:service_id)
     |> unique_constraint(:remote_id)
+    |> put_assoc(:service, service)
   end
 
   def on_conflict_options(%Changeset{} = changeset) do
