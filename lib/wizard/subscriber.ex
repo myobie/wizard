@@ -1,5 +1,8 @@
 defmodule Wizard.Subscriber do
+  require Logger
+
   alias Wizard.{Repo, User}
+  alias Wizard.Sharepoint
   alias Wizard.Sharepoint.{Authorization, Drive}
   alias Wizard.Subscriber.{Server, Subscription}
 
@@ -45,6 +48,10 @@ defmodule Wizard.Subscriber do
     end
   end
 
+  def stop(%__MODULE__{} = subscriber) do
+    GenServer.stop(subscriber.pid)
+  end
+
   @spec sync(t) :: :ok
   def sync(%__MODULE__{} = subscriber) do
     GenServer.cast(subscriber.pid, :sync)
@@ -81,5 +88,18 @@ defmodule Wizard.Subscriber do
 
     %{subscriber | subscription: subscription}
     |> preload()
+  end
+
+  def reauthorize(%__MODULE__{authorization: authorization} = subscriber) do
+    result = Repo.preload(authorization, :service)
+             |> Sharepoint.reauthorize()
+
+    case result do
+      {:ok, authorization} ->
+        %{subscriber | authorization: authorization}
+      {:error, error} ->
+        Logger.error("Reauthorization failed #{inspect({:error, error, subscriber})}")
+        subscriber
+    end
   end
 end
