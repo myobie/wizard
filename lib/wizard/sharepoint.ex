@@ -292,6 +292,7 @@ defmodule Wizard.Sharepoint do
     end)
   end
 
+  # TODO: detect if it's an update or an insert
   @spec upsert_item_event(Multi.t, [feed: Feed.t]) :: Multi.t
   defp upsert_item_event(multi, [feed: feed]) do
     Multi.run(multi, :event, &upsert_item_event_multi_body(&1, feed))
@@ -338,6 +339,7 @@ defmodule Wizard.Sharepoint do
   @spec delete_remote_items([map], [drive: Drive.t, feed: Feed.t]) :: {integer, nil | [term]}
   defp delete_remote_items([], _), do: {0, []}
 
+  # TODO: loop through and delete each one so we can do an event for it
   defp delete_remote_items(infos, [drive: %{id: drive_id}, feed: _feed]) do
     now = DateTime.utc_now()
     remote_ids = for info <- infos, Map.has_key?(info, "id"), do: info["id"]
