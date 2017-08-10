@@ -9,18 +9,6 @@ defmodule Wizard.Sharepoint.Events do
     Regex.match? @name_regex, name
   end
 
-  @spec prepare_item_create_event(Item.t, User.t) :: Feeds.event_info
-  def prepare_item_create_event(item, user),
-    do: prepare_item_event(:create, item, user)
-
-  @spec prepare_item_update_event(Item.t, User.t) :: Feeds.event_info
-  def prepare_item_update_event(item, user),
-    do: prepare_item_event(:update, item, user)
-
-  @spec prepare_item_delete_event(Item.t, User.t) :: Feeds.event_info
-  def prepare_item_delete_event(item, user),
-    do: prepare_item_event(:delete, item, user)
-
   @spec pad(non_neg_integer) :: String.t
   defp pad(num) when num < 10, do: "0#{num}"
   defp pad(num), do: to_string(num)

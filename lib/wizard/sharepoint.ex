@@ -277,7 +277,8 @@ defmodule Wizard.Sharepoint do
                            last_modified_at: fragment("EXCLUDED.last_modified_at"),
                            size: fragment("EXCLUDED.size"),
                            url: fragment("EXCLUDED.url"),
-                           parent_id: fragment("EXCLUDED.parent_id")
+                           parent_id: fragment("EXCLUDED.parent_id"),
+                           updated_at: fragment("EXCLUDED.inserted_at")
                          ]]
 
   @item_conflict_options [on_conflict: @item_conflict_query,
@@ -292,7 +293,6 @@ defmodule Wizard.Sharepoint do
     end)
   end
 
-  # TODO: detect if it's an update or an insert
   @spec upsert_item_event(Multi.t, [feed: Feed.t]) :: Multi.t
   defp upsert_item_event(multi, [feed: feed]) do
     Multi.run(multi, :event, &upsert_item_event_multi_body(&1, feed))
@@ -300,7 +300,8 @@ defmodule Wizard.Sharepoint do
 
   defp upsert_item_event_multi_body(%{item: item, user: user}, %Feed{} = feed) do
     if Events.should_emit_event?(item, user) do
-      Events.prepare_item_create_event(item, user)
+      item_event_type(item)
+      |> Events.prepare_item_event(item, user)
       |> Keyword.merge([feed: feed])
       |> Feeds.upsert_event()
     else
@@ -308,6 +309,16 @@ defmodule Wizard.Sharepoint do
     end
   end
   defp upsert_item_event_multi_body(_, _), do: {:ok, nil}
+
+  @spec item_event_type(Item.t) :: :create | :update | :delete
+  defp item_event_type(%Item{} = item) do
+    cond do
+      not is_nil(item.deleted_at) -> :delete
+      item.updated_at > item.inserted_at -> :update
+      item.updated_at == item.inserted_at -> :create
+      true -> :create # NOTE: what should we do here?
+    end
+  end
 
   @spec discover_parents([map], [drive: Drive.t]) :: parents
   def discover_parents([], _), do: %{}
@@ -339,7 +350,8 @@ defmodule Wizard.Sharepoint do
   @spec delete_remote_items([map], [drive: Drive.t, feed: Feed.t]) :: {integer, nil | [term]}
   defp delete_remote_items([], _), do: {0, []}
 
-  # TODO: loop through and delete each one so we can do an event for it
+  # TODO: loop through and delete each one so we can do an
+  # event for it after determining how to know the actor
   defp delete_remote_items(infos, [drive: %{id: drive_id}, feed: _feed]) do
     now = DateTime.utc_now()
     remote_ids = for info <- infos, Map.has_key?(info, "id"), do: info["id"]
