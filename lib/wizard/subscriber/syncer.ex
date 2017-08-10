@@ -61,7 +61,7 @@ defmodule Wizard.Subscriber.Syncer do
   end
 
   defp process({:ok, %{"@odata.deltaLink" => delta_link, "value" => items}}, state) do
-    with {:ok, _} <- process_items(items, state.subscriber),
+    with :ok <- process_items(items, state.subscriber),
          {:ok, _} <- Sharepoint.update_drive(state.subscriber.subscription.drive, delta_link: delta_link) do
       %{state | delta_link: delta_link, next_link: nil, done: true} # NOTE: done
     else
@@ -71,7 +71,7 @@ defmodule Wizard.Subscriber.Syncer do
   end
 
   defp process({:ok, %{"@odata.nextLink" => next_link, "value" => items}}, state) do
-    with {:ok, _} <- process_items(items, state.subscriber) do
+    with :ok <- process_items(items, state.subscriber) do
       %{state | next_link: next_link, delta_link: nil}
     else
       {:error, error} ->
@@ -85,6 +85,6 @@ defmodule Wizard.Subscriber.Syncer do
 
   defp process_items(infos, %Subscriber{subscription: %{drive: drive}}) do
     Logger.debug("processing #{length(infos)} items for drive #{drive.id}")
-    Sharepoint.insert_or_delete_remote_items(infos, drive: drive)
+    Sharepoint.upsert_or_delete_remote_items(infos, drive: drive)
   end
 end

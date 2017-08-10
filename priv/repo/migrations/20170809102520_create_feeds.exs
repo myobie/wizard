@@ -8,6 +8,6 @@ defmodule Wizard.Repo.Migrations.CreateFeeds do
       timestamps()
     end
 
-    create index(:feeds, [:drive_id])
+    create unique_index(:feeds, [:drive_id])
   end
 end

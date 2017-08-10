@@ -29,9 +29,4 @@ defmodule Wizard.Sharepoint.Site do
     |> unique_constraint(:remote_id)
     |> put_assoc(:service, service)
   end
-
-  def on_conflict_options(%Changeset{} = changeset) do
-    changeset
-    |> fetch_fields([:hostname, :title, :url, :description])
-  end
 end

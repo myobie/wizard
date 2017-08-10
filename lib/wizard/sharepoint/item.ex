@@ -63,7 +63,8 @@ defmodule Wizard.Sharepoint.Item do
       last_modified_at: get_in(info, ["fileSystemInfo", "lastModifiedDateTime"]),
       size: info["size"],
       url: info["webUrl"],
-      parent_remote_id: assoc_remote_parent_remote_id(info)
+      parent_remote_id: assoc_remote_parent_remote_id(info),
+      user: extract_user_info(info)
     }
   end
 
@@ -72,7 +73,24 @@ defmodule Wizard.Sharepoint.Item do
   defp remote_item_type(%{"folder" => _}), do: "folder"
   defp remote_item_type(_), do: "file"
 
-  @spec assoc_remote_parent_remote_id(map) :: nil | any
-  def assoc_remote_parent_remote_id(%{"parentReference" => %{"id" => parent_remote_id}}), do: parent_remote_id
+  @spec assoc_remote_parent_remote_id(map) :: nil | String.t
+  def assoc_remote_parent_remote_id(%{"parentReference" => %{"id" => parent_remote_id}}), do: to_string(parent_remote_id)
   def assoc_remote_parent_remote_id(_), do: nil
+
+  @spec extract_user_info(map) :: nil | map
+  defp extract_user_info(%{"lastModifiedBy" => %{"user" => info}}),
+    do: extract_user_info_from_identity(info)
+
+  defp extract_user_info(%{"createdBy" => %{"user" => info}}),
+    do: extract_user_info_from_identity(info)
+
+  defp extract_user_info(_), do: nil
+
+  @spec extract_user_info_from_identity(map) :: map
+  defp extract_user_info_from_identity(info) do
+    %{
+      name: info["displayName"],
+      email: info["email"]
+    }
+  end
 end

@@ -14,19 +14,19 @@ defmodule Wizard.FeedsTest do
   test "can insert feed events", %{feed: feed, user: actor} do
     other_actor = insert(:user)
 
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: actor,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
                                   feed: feed
 
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: other_actor,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
                                   feed: feed
 
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: other_actor,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
@@ -41,14 +41,14 @@ defmodule Wizard.FeedsTest do
     user2 = insert(:user)
     user3 = insert(:user)
 
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: user1,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
                                   grouping: "a",
                                   feed: feed
 
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: user2,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
@@ -56,21 +56,21 @@ defmodule Wizard.FeedsTest do
                                   feed: feed
 
     # repeat
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: user2,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
                                   grouping: "a",
                                   feed: feed
 
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: user2,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
                                   grouping: "b",
                                   feed: feed
 
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: user3,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
@@ -78,7 +78,7 @@ defmodule Wizard.FeedsTest do
                                   feed: feed
 
     # repeat
-    {:ok, _} = Feeds.insert_event type: "file.update",
+    {:ok, _} = Feeds.upsert_event type: "file.update",
                                   actor: user2,
                                   subject: %{id: 1, type: "file"},
                                   payload: %{summary: "updated a new file"},
