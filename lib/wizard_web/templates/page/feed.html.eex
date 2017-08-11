@@ -1,0 +1,11 @@
+<ol>
+  <%= for event <- @events do %>
+    <%= if event.type == "file.update" do %>
+      <li>
+        <%= format_actors(event.actors) %>
+        updated a file
+        <%= format_file_name(event) %>
+      </li>
+    <% end %>
+  <% end %>
+</ol>

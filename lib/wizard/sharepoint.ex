@@ -92,10 +92,10 @@ defmodule Wizard.Sharepoint do
 
   @drive_conflict_query from d in Drive,
                           update: [set: [
-                            name: fragment(""),
-                            type: fragment(""),
-                            url: fragment(""),
-                            delta_link: fragment(""),
+                            name: fragment("EXCLUDED.name"),
+                            type: fragment("EXCLUDED.type"),
+                            url: fragment("EXCLUDED.url"),
+                            delta_link: fragment("EXCLUDED.delta_link"),
                           ]]
 
   @drive_conflict_options [on_conflict: @drive_conflict_query,

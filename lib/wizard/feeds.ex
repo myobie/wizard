@@ -7,6 +7,36 @@ defmodule Wizard.Feeds do
   alias Wizard.Sharepoint.{Drive}
   alias Wizard.Feeds.{Event, Feed}
 
+  def all_events do
+    events = from(e in Event, order_by: e.updated_at, limit: 30)
+             |> Repo.all()
+
+    user_ids = events
+               |> Enum.flat_map(&(&1.actor_ids))
+
+    users = from(u in User, where: u.id in ^user_ids)
+            |> Repo.all()
+
+    indexed_users = for u <- users, into: %{}, do: {u.id, u}
+
+    for e <- events, do: preload_event_users(e, indexed_users)
+  end
+
+  defp preload_event_users(%Event{} = event, %{} = users) do
+    %{event | actors: preload_users(event.actor_ids, users)}
+  end
+
+  defp preload_users(user_ids, %{} = users),
+    do: preload_users([], user_ids, users)
+
+  defp preload_users(result, [], _users), do: result
+  defp preload_users(result, [user_id | user_ids], %{} = users) do
+    case Map.get(users, user_id) do
+      nil -> preload_users(result, user_ids, users)
+      user -> preload_users([user | result], user_ids, users)
+    end
+  end
+
   @type event_info :: [type: String.t, actor: User.t, subject: map, payload: map, feed: Feed.t] |
                       [type: String.t, actor: User.t, subject: map, payload: map, grouping: String.t, feed: Feed.t]
 
@@ -50,11 +80,18 @@ defmodule Wizard.Feeds do
     |> Repo.insert(@on_conflict_options)
   end
 
+  @feed_conflict_query from f in Feed,
+                         update: [set: [
+                           drive_id: fragment("EXCLUDED.drive_id")
+                         ]]
+
+  @feed_conflict_options [on_conflict: @feed_conflict_query,
+                          conflict_target: :drive_id,
+                          returning: true]
+
   @spec upsert_feed([drive: Drive.t]) :: {:ok, Drive.t} | {:error, Ecto.Changeset.t}
   def upsert_feed([drive: drive]) do
     Feed.changeset(drive: drive)
-    |> Repo.insert([on_conflict: :nothing,
-                    conflict_target: :drive_id,
-                    returning: true])
+    |> Repo.insert(@feed_conflict_options)
   end
 end

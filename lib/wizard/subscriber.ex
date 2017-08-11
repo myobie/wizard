@@ -1,14 +1,17 @@
 defmodule Wizard.Subscriber do
   require Logger
 
-  alias Wizard.{Repo, User}
-  alias Wizard.Sharepoint
+  alias Wizard.{Feeds, Repo, Sharepoint, User}
   alias Wizard.Sharepoint.{Authorization, Drive}
   alias Wizard.Subscriber.{Server, Subscription}
 
-  defstruct subscription: nil, pid: nil, authorization: nil
+  defstruct subscription: nil, pid: nil, authorization: nil, feed: nil
 
   defmodule AuthorizationNotFoundError do
+    defexception [:message]
+  end
+
+  defmodule FeedNotCreatedError do
     defexception [:message]
   end
 
@@ -61,7 +64,17 @@ defmodule Wizard.Subscriber do
   def preload_and_authorization(%__MODULE__{} = subscriber) do
     subscriber
     |> preload()
+    |> setup_feed()
     |> authorization()
+  end
+
+  def setup_feed(%__MODULE__{subscription: %{drive: drive}} = subscriber) do
+    case Feeds.upsert_feed(drive: drive) do
+      {:ok, feed} ->
+        %{subscriber | feed: feed}
+      _ ->
+        raise FeedNotCreatedError, message: "drive '#{drive.id}' doesn't have an associated feed"
+    end
   end
 
   @spec preload(t) :: t

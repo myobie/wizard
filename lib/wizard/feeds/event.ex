@@ -14,6 +14,8 @@ defmodule Wizard.Feeds.Event do
     field :payload, :map, default: %{}
     field :grouping, :string, default: "default"
 
+    field :actors, {:array, :struct}, virtual: true
+
     timestamps()
   end
 
