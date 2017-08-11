@@ -43,6 +43,8 @@ defmodule Wizard.Mixfile do
      {:guardian, "~> 0.14"},
      {:jose, "~> 1.8"},
      {:timex, "~> 3.0"},
+     {:download, "~> 0.0.4"},
+     {:temp, "~> 0.4"},
      {:ex_machina, git: "https://github.com/myobie/ex_machina.git", only: :test},
      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
      {:quick_alias, "~> 0.1.0", only: :dev, runtime: false}]

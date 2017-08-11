@@ -14,6 +14,16 @@ defmodule Wizard.Sharepoint.Api do
     decode_json_response HTTPoison.get(url, h, [])
   end
 
+  def download(url, [to: path, access_token: access_token]) do
+    h = access_token_header([access_token: access_token])
+    Logger.debug inspect({:getting, url, h})
+
+    with response = HTTPoison.get(url, h, []),
+         {:ok, %{location: location}} <- decode_json_response(response),
+         {:ok, path} <- Download.from(location, path: path),
+     do: {:ok, url, path}
+  end
+
   def post(url, body, opts \\ []) do
     json = Poison.encode!(body)
     opts = opts ++ [additional_headers: @json_content_type_header]
@@ -78,10 +88,14 @@ defmodule Wizard.Sharepoint.Api do
       {:ok, %HTTPoison.Response{status_code: 201, body: body} = response} ->
         Logger.debug inspect({:response, response})
         Poison.decode(body)
-      {:ok,  %HTTPoison.Response{status_code: 204} = response} ->
+      {:ok, %HTTPoison.Response{status_code: 204} = response} ->
         Logger.debug inspect({:response, response})
         {:ok, nil}
-      {:ok,  %HTTPoison.Response{status_code: 401} = response} ->
+      {:ok, %HTTPoison.Response{status_code: 302} = response} ->
+        {_, location} = response.headers
+                      |> Enum.find(fn {key, _} -> key == "Location" end)
+        {:ok, %{location: location}}
+      {:ok, %HTTPoison.Response{status_code: 401} = response} ->
         Logger.debug inspect({:response, response})
         IO.puts("Maybe the access_token has expired")
         {:error, :unauthorized}

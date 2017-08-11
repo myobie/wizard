@@ -2,16 +2,17 @@ defmodule Wizard.Sharepoint.Events do
   alias Wizard.Sharepoint.Item
   alias Wizard.{Feeds, User}
 
-  @name_regex ~r/\A.*\.sketch$\z/
+  @extensions ~w(.sketch)
 
   @spec should_emit_event?(Item.t, User.t) :: boolean
-  def should_emit_event?(%Item{name: name}, _user) do
-    Regex.match? @name_regex, name
-  end
+  def should_emit_event?(%Item{name: name, type: "file"}, _user),
+    do: Path.extname(name) |> Enum.member?(@extensions)
+
+  def should_emit_event?(_item, _user), do: false
 
   @spec pad(non_neg_integer) :: String.t
   defp pad(num) when num < 10, do: "0#{num}"
-  defp pad(num), do: to_string(num)
+  defp pad(num),               do: to_string(num)
 
   @spec grouping_by_hour() :: String.t
   defp grouping_by_hour do
