@@ -64,7 +64,7 @@ defmodule Wizard.Subscriber.Server do
     {:noreply,
      %{state | insync: nil,
        subscriber: subscriber,
-       timer_ref: schedule_sync_for_later(timer_ref)}}
+       timer_ref: schedule_sync_for_later(timer_ref, @ten_seconds)}}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{insync: insync, timer_ref: timer_ref} = state) when insync == ref do
