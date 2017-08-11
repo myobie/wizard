@@ -13,6 +13,7 @@ defmodule Wizard.Feeds do
 
     user_ids = events
                |> Enum.flat_map(&(&1.actor_ids))
+               |> Enum.uniq()
 
     users = from(u in User, where: u.id in ^user_ids)
             |> Repo.all()
