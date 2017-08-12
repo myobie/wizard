@@ -6,8 +6,6 @@ defmodule Wizard.Application do
   def start(_type, _args) do
     import Supervisor.Spec
 
-    Temp.track!
-
     # Define workers and child supervisors to be supervised
     children = [
       # Start the Ecto repository

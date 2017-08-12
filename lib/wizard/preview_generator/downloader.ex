@@ -18,7 +18,11 @@ defmodule Wizard.PreviewGenerator.Downloader do
 
   @spec tmpdir() :: {:ok, Path.t} | {:error, any}
   defp tmpdir do
-    Temp.mkdir()
+    case System.tmp_dir() do
+      nil -> {:error, :not_writable}
+      dir ->
+        {:ok, Path.join(dir, "downloads")}
+    end
   end
 
   defp find_authorization(%Service{} = service, %User{} = user) do
