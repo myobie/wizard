@@ -8,7 +8,7 @@ defmodule Wizard.Feeds do
   alias Wizard.Feeds.{Event, Feed}
 
   def all_events do
-    events = from(e in Event, order_by: e.updated_at, limit: 30)
+    events = from(e in Event, order_by: [desc: e.updated_at], limit: 30)
              |> Repo.all()
 
     user_ids = events
