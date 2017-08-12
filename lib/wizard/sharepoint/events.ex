@@ -6,7 +6,7 @@ defmodule Wizard.Sharepoint.Events do
 
   @spec should_emit_event?(Item.t, User.t) :: boolean
   def should_emit_event?(%Item{name: name, type: "file"}, _user),
-    do: Path.extname(name) |> Enum.member?(@extensions)
+    do: Enum.member?(@extensions, Path.extname(name))
 
   def should_emit_event?(_item, _user), do: false
 
