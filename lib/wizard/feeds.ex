@@ -48,15 +48,15 @@ defmodule Wizard.Feeds do
   def preload_event_actors(%Event{} = event, _sers), do: event
 
   @spec find_users(indexed_users, ids) :: list(User.t)
-  @spec find_users(list(User.t), indexed_users, ids) :: list(User.t)
-  defp find_users(user_ids, %{} = users),
+  defp find_users(%{} = users, user_ids),
     do: find_users([], users, user_ids)
 
+  @spec find_users(list(User.t), indexed_users, ids) :: list(User.t)
   defp find_users(result, _users, []), do: result
   defp find_users(result, %{} = users, [user_id | user_ids]) do
     case Map.get(users, user_id) do
-      nil -> find_users(result, user_ids, users)
-      user -> find_users([user | result], user_ids, users)
+      nil -> find_users(result, users, user_ids)
+      user -> find_users([user | result], users, user_ids)
     end
   end
 
