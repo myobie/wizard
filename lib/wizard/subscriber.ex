@@ -18,9 +18,15 @@ defmodule Wizard.Subscriber do
   @type t :: %__MODULE__{}
 
   def start_all_subscriptions do
-    Subscription
-    |> Repo.all()
-    |> Enum.map(&start_link/1)
+    start_subscriptions([], Repo.all(Subscription))
+  end
+
+  defp start_subscriptions(result, []), do: {:ok, result}
+  defp start_subscriptions(result, [subscription | subscriptions]) do
+    case start_link(subscription) do
+      {:ok, sub} -> start_subscriptions([sub | result], subscriptions)
+      error -> {:error, error, result}
+    end
   end
 
   @spec subscribe(User.t, Drive.t) :: t

@@ -4,8 +4,18 @@ defmodule Wizard.Feeds do
   import Ecto.Query, warn: false
 
   alias Wizard.{Repo, User}
-  alias Wizard.Sharepoint.{Drive}
+  alias Wizard.Sharepoint.{Drive, Item}
   alias Wizard.Feeds.{Event, Feed}
+
+  @type event_info :: [type: String.t, actor: User.t, subject: map, payload: map, feed: Feed.t] |
+                      [type: String.t, actor: User.t, subject: map, payload: map, grouping: String.t, feed: Feed.t]
+
+  @type db_result :: {:ok, Event.t} | {:error, Ecto.Changeset.t}
+
+  @type indexed_users :: %{optional(String.t) => User.t}
+
+  @type id :: non_neg_integer
+  @type ids :: list(id)
 
   def all_events do
     events = from(e in Event, order_by: [desc: e.updated_at], limit: 30)
@@ -20,31 +30,37 @@ defmodule Wizard.Feeds do
 
     indexed_users = for u <- users, into: %{}, do: {u.id, u}
 
-    for e <- events, do: preload_event_users(e, indexed_users)
+    for e <- events, do: preload_event_actors(e, indexed_users)
   end
 
-  defp preload_event_users(%Event{} = event, %{} = users) do
-    %{event | actors: preload_users(event.actor_ids, users)}
+  @spec preload_event_subject(Event.t) :: Event.t
+  def preload_event_subject(%Event{subject_type: "sharepoint.item", subject_id: subject_id, subject: nil} = event) do
+    subject = Repo.get(Item, subject_id)
+    %{event | subject: subject}
   end
+  def preload_event_subject(%Event{} = event), do: event
 
-  defp preload_users(user_ids, %{} = users),
-    do: preload_users([], user_ids, users)
+  @spec preload_event_actors(Event.t, indexed_users) :: Event.t
+  def preload_event_actors(%Event{actors: nil} = event, %{} = users) do
+    actors = find_users(users, event.actor_ids)
+    %{event | actors: actors}
+  end
+  def preload_event_actors(%Event{} = event, _sers), do: event
 
-  defp preload_users(result, [], _users), do: result
-  defp preload_users(result, [user_id | user_ids], %{} = users) do
+  @spec find_users(indexed_users, ids) :: list(User.t)
+  @spec find_users(list(User.t), indexed_users, ids) :: list(User.t)
+  defp find_users(user_ids, %{} = users),
+    do: find_users([], users, user_ids)
+
+  defp find_users(result, _users, []), do: result
+  defp find_users(result, %{} = users, [user_id | user_ids]) do
     case Map.get(users, user_id) do
-      nil -> preload_users(result, user_ids, users)
-      user -> preload_users([user | result], user_ids, users)
+      nil -> find_users(result, user_ids, users)
+      user -> find_users([user | result], user_ids, users)
     end
   end
 
-  @type event_info :: [type: String.t, actor: User.t, subject: map, payload: map, feed: Feed.t] |
-                      [type: String.t, actor: User.t, subject: map, payload: map, grouping: String.t, feed: Feed.t]
-
-  @type db_result :: {:ok, Event.t} | {:error, Ecto.Changeset.t}
-
   @spec event_changeset(event_info) :: Ecto.Changeset.t
-
   def event_changeset([type: type, actor: actor, subject: subject, payload: payload, feed: feed]),
     do: event_changeset([type: type, actor: actor, subject: subject, payload: payload, grouping: "default", feed: feed])
 

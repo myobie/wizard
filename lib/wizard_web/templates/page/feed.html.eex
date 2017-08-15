@@ -1,7 +1,7 @@
 <ol>
   <%= for event <- @events do %>
     <%= if event.type == "file.update" do %>
-      <li>
+      <li data-id="<%= event.id %>">
         <%= format_actors(event.actors) %>
         updated a file
         <%= format_file_name(event) %>

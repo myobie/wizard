@@ -21,7 +21,11 @@ defmodule Wizard.PreviewGenerator.Downloader do
     case System.tmp_dir() do
       nil -> {:error, :not_writable}
       dir ->
-        {:ok, Path.join(dir, "downloads")}
+        full_dir = Path.join(dir, "downloads")
+        case File.mkdir(full_dir) do
+          :ok -> {:ok, full_dir}
+          error -> error
+        end
     end
   end
 

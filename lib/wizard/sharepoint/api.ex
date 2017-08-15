@@ -20,8 +20,13 @@ defmodule Wizard.Sharepoint.Api do
 
     with response = HTTPoison.get(url, h, []),
          {:ok, %{location: location}} <- decode_json_response(response),
-         {:ok, path} <- Download.from(location, path: path),
+         {:ok, path} <- download_from(location, path: path),
      do: {:ok, url, path}
+  end
+
+  defp download_from(location, [path: path]) do
+    Logger.debug("Downloading from #{location} to #{path}")
+    Download.from(location, path: path)
   end
 
   def post(url, body, opts \\ []) do
