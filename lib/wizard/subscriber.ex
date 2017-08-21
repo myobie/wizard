@@ -17,10 +17,18 @@ defmodule Wizard.Subscriber do
 
   @type t :: %__MODULE__{}
 
+  @type on_start :: {:ok, t} |
+                 :ignore |
+                 {:error, {:already_started, pid} | term}
+
+  @spec start_all_subscriptions() :: {:ok, list(t)} |
+                                     {:error, on_start, list(t)}
   def start_all_subscriptions do
     start_subscriptions([], Repo.all(Subscription))
   end
 
+  @spec start_subscriptions(list(t), list(Subscription.t)) :: {:ok, list(t)} |
+                                                              {:error, on_start, list(t)}
   defp start_subscriptions(result, []), do: {:ok, result}
   defp start_subscriptions(result, [subscription | subscriptions]) do
     case start_link(subscription) do
@@ -50,7 +58,7 @@ defmodule Wizard.Subscriber do
          do: {:ok, subscriber}
   end
 
-  @spec start_link(Subscription.t | t) :: {:ok, t}
+  @spec start_link(Subscription.t | t) :: on_start
   def start_link(%Subscription{} = subscription) do
     %__MODULE__{subscription: subscription}
     |> start_link()
@@ -63,6 +71,7 @@ defmodule Wizard.Subscriber do
     end
   end
 
+  @spec stop(t) :: :ok
   def stop(%__MODULE__{} = subscriber) do
     GenServer.stop(subscriber.pid)
   end

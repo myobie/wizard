@@ -44,7 +44,7 @@ defmodule Wizard.PreviewGenerator.Compare do
     end
   end
 
-  @spec load(list(Path.t)) :: {:ok, list(Imagineer.Image.PNG.t)} | {:error, any}
+  @spec load(list(Path.t)) :: {:ok, list(map)} | {:error, any}
   defp load(paths), do: load([], paths)
   defp load(result, []), do: {:ok, result}
   defp load(result, [path | paths]) do
