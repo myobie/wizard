@@ -1,4 +1,6 @@
 defmodule Wizard.PreviewGenerator.Compare do
+  require Logger
+
   @spec is_same_png?(Path.t, Path.t) :: boolean | {:error, any}
   def is_same_png?(first_image_path, second_image_path) do
     case load([first_image_path, second_image_path]) do
@@ -7,7 +9,8 @@ defmodule Wizard.PreviewGenerator.Compare do
           is_same_bit_depth?(png1, png2) &&
           has_same_pixels?(png1, png2)
       error ->
-        error
+        Logger.error "Error reading png files #{inspect error}"
+        false
     end
   end
 
