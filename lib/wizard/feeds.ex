@@ -6,6 +6,7 @@ defmodule Wizard.Feeds do
   alias Wizard.{Repo, User}
   alias Wizard.Sharepoint.{Drive, Item}
   alias Wizard.Feeds.{Event, Feed}
+  alias Wizard.Subscriber.Subscription
 
   @type event_info :: [type: String.t, actor: User.t, subject: map, payload: map, feed: Feed.t] |
                       [type: String.t, actor: User.t, subject: map, payload: map, grouping: String.t, feed: Feed.t]
@@ -31,6 +32,19 @@ defmodule Wizard.Feeds do
     indexed_users = for u <- users, into: %{}, do: {u.id, u}
 
     for e <- events, do: preload_event_actors(e, indexed_users)
+  end
+
+  @spec preload_event_subscription(Event.t) :: Event.t
+  def preload_event_subscription(%Event{} = event) do
+    event = Repo.preload(event, :feed)
+
+    sub = from(s in Subscription,
+               where: s.drive_id == ^event.feed.drive_id,
+               preload: :user,
+               limit: 1)
+               |> Repo.one()
+
+    %{event | subscription: sub}
   end
 
   @spec preload_event_subject(Event.t) :: Event.t

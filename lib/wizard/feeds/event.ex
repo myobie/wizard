@@ -13,9 +13,11 @@ defmodule Wizard.Feeds.Event do
     field :subject_type, :string
     field :payload, :map, default: %{}
     field :grouping, :string, default: "default"
+    field :preview_state, :string, default: "pending"
 
     field :actors, {:array, :map}, virtual: true
     field :subject, :map, virtual: true
+    field :subscription, :map, virtual: true
 
     timestamps()
   end
@@ -27,6 +29,7 @@ defmodule Wizard.Feeds.Event do
     |> cast(attrs, [:type, :actor_ids, :subject_id, :subject_type, :payload, :grouping])
     |> validate_required([:type, :actor_ids, :subject_id, :subject_type, :payload, :grouping])
     |> validate_length([:type, :subject_type, :grouping], max: 64)
+    |> validate_inclusion(:preview_state, ["pending", "complete", "failed"])
     |> check_constraint(:actor_ids, name: :actor_ids_must_not_be_empty)
     |> check_constraint(:subject, name: :payload_must_be_an_object)
     |> foreign_key_constraint(:feed_id)

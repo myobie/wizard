@@ -14,14 +14,26 @@ defmodule Wizard.Sharepoint.Api do
     decode_json_response HTTPoison.get(url, h, [])
   end
 
+  @spec download(String.t, [to: String.t, access_token: String.t]) :: :ok | {:error, atom}
   def download(url, [to: path, access_token: access_token]) do
     h = access_token_header([access_token: access_token])
     Logger.debug inspect({:getting, url, h})
 
     with response = HTTPoison.get(url, h, []),
-         {:ok, %{location: location}} <- decode_json_response(response),
-         {:ok, path} <- download_from(location, path: path),
-     do: {:ok, url, path}
+         {:ok, location} <- decode_download_response(response),
+         {:ok, _} <- download_from(location, path: path),
+      do: :ok
+  end
+
+  @spec decode_download_response(ApiClient.result) :: {:ok, String.t} | {:error, :download_failed}
+  defp decode_download_response(response) do
+    case decode_json_response(response) do
+      {:ok, %{location: location}} ->
+        {:ok, location}
+      {:error, error_response} ->
+        Logger.error "Download failed with response: #{inspect error_response}"
+        {:error, :download_failed}
+    end
   end
 
   defp download_from(location, [path: path]) do
