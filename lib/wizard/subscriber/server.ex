@@ -67,6 +67,14 @@ defmodule Wizard.Subscriber.Server do
        timer_ref: schedule_sync_for_later(timer_ref, @ten_seconds)}}
   end
 
+  def handle_info({:DOWN, ref, :process, _pid, {:error, %HTTPoison.Error{reason: :timeout}}}, %{insync: insync, timer_ref: timer_ref} = state) when insync == ref do
+    Logger.error "Sync request timed out, will retry"
+
+    {:noreply,
+     %{state | insync: nil,
+       timer_ref: schedule_sync_for_later(timer_ref, @ten_seconds)}}
+  end
+
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{insync: insync, timer_ref: timer_ref} = state) when insync == ref do
     Logger.debug("the sync process crashed, reason: #{inspect reason}")
 

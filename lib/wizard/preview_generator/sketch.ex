@@ -15,7 +15,7 @@ defmodule Wizard.PreviewGenerator.Sketch do
                                      :sketchtool_command_failed}
 
   @command "sketchtool"
-  @export_args ~w|export artboards --background='rgb(255,255,255)' --overwriting --use-id-for-name|
+  @export_args ~w|export artboards --background='#ffffff' --overwriting --use-id-for-name|
   @list_args ~w|list artboards|
 
   @spec export(Path.t, Event.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
@@ -31,16 +31,60 @@ defmodule Wizard.PreviewGenerator.Sketch do
 
   @spec installed?() :: boolean
   def installed? do
-    case System.cmd("which", [@command]) do
+    case cmd("which", [@command]) do
       {_, 0} -> true
       _ -> false
+    end
+  end
+
+  def cmd(command, args, opts \\ []) do
+    Logger.debug "&&&&&&&&&"
+    Logger.debug "$ #{command} #{Enum.join(args, " ")}"
+    Logger.debug "&&&&&&&&&"
+    # System.cmd command, args, opts
+
+    command_string = Enum.join([command] ++ args, " ")
+
+    settings = cmd_settings(opts)
+
+    Port.open({:spawn, command_string}, settings)
+    |> receive_data()
+  end
+
+  defp cmd_settings([]) do
+    [:stream, :in, :eof, :hide, :exit_status]
+  end
+
+  defp cmd_settings(opts) do
+    case Keyword.fetch(opts, :cd) do
+      {:ok, dir} ->
+        cmd_settings([]) ++ [{:cd, dir}]
+      _ ->
+        cmd_settings([])
+    end
+  end
+
+  defp receive_data(port), do: receive_data(port, [])
+  defp receive_data(port, acc) do
+    receive do
+      {^port, {:data, bytes}} ->
+        receive_data(port, [acc | bytes])
+      {^port, :eof} ->
+        send(port, {self(), :close})
+        receive do
+          {^port, :closed} -> true
+        end
+        exit_code = receive do
+          {^port, {:exit_status, code}} -> code
+        end
+        {to_string(List.flatten(acc)), exit_code}
     end
   end
 
   @spec export_artboards(Path.t, Event.t) :: {:ok, list(ExportedFile.t)} | {:error, :sketchtool_command_failed}
   def export_artboards(file, event) do
     dir_path = dir(file)
-    case System.cmd(@command, args(:export, file), cd: dir_path) do
+    case cmd(@command, args(:export, file), cd: dir_path) do
       {output, 0} -> {:ok, parse_exported_filenames(output, dir_path, event)}
       {message, code} ->
         Logger.error "sketchtool command failed with status #{code} and message: #{message}"
@@ -57,7 +101,7 @@ defmodule Wizard.PreviewGenerator.Sketch do
     end
   end
 
-  @spec lines(String.t) :: list(String.t)
+  @spec lines(binary) :: list(String.t)
   defp lines(string) do
     string
     |> String.trim()
@@ -74,7 +118,7 @@ defmodule Wizard.PreviewGenerator.Sketch do
 
   @spec list_artboards(Path.t) :: artboards_result
   def list_artboards(file) do
-    case System.cmd(@command, args(:list, file), cd: dir(file)) do
+    case cmd(@command, args(:list, file), cd: dir(file)) do
       {json, 0} -> parse_artboards_json(json)
       {message, code} ->
         Logger.error "sketchtool command failed with status #{code} and message: #{message}"
@@ -138,9 +182,9 @@ defmodule Wizard.PreviewGenerator.Sketch do
     do: Path.dirname(file)
 
   @spec args(:export | :list, String.t) :: list
-  defp args(:export, file),
-    do: @export_args ++ [file]
+  def args(:export, file),
+    do: @export_args ++ ["'#{file}'"]
 
-  defp args(:list, file),
-    do: @list_args ++ [file]
+  def args(:list, file),
+    do: @list_args ++ ["'#{file}'"]
 end

@@ -12,44 +12,80 @@ defmodule Wizard.PreviewGenerator.Server do
 
     work_soon()
     {:ok, %{events: events,
+            retry_count: 0,
+            current_event: nil,
             task: nil}}
   end
 
-  def handle_cast({:process, event}, _from, %{events: events, task: task} = state) do
-    unless task, do: work_soon()
+  def process(event) do
+    case PreviewGenerator.process(event) do
+      {:ok, _} -> :ok
+      error -> error
+    end
+  end
+
+  def handle_cast({:process, event},
+                  %{events: events, task: task} = state) do
+    unless task,
+      do: work_soon()
+
     {:noreply, %{state | events: events ++ [event]}}
   end
 
-  def handle_info(:work, %{events: [event | events], task: nil} = state) do
-    task = Task.async(PreviewGenerator, :process, [event])
-    {:noreply, %{state | working: true, events: events, task: task}}
+  def handle_info(:work, %{events: [event | events],
+                           task: nil,
+                           current_event: nil} = state) do
+    task = Task.async(__MODULE__, :process, [event])
+    {:noreply, %{state | events: events, task: task, current_event: event}}
   end
-  def handle_info(:work, state), do: {:ok, state}
+  def handle_info(:work, state), do: {:noreply, state}
 
-  def handle_info({ref, {:ok, event}},
-                  %{task: %{ref: task_ref, events: events}} = state)
+  def handle_info({ref, :ok},
+                  %{task: %{ref: task_ref},
+                    current_event: current_event} = state)
                   when ref == task_ref do
 
-    Logger.debug "Finishing processing previews for event #{inspect event}"
+    Wizard.Feeds.update_event_preview_state(current_event, "complete")
+
+    Logger.debug "Finishing processing previews for event #{inspect current_event}\n\n\n"
+
+    {:noreply, %{state | current_event: nil, retry_count: 0}}
+  end
+
+  def handle_info({ref, {:error, error}},
+                  %{task: %{ref: task_ref},
+                    events: events,
+                    current_event: current_event,
+                    retry_count: retry_count} = state)
+                  when ref == task_ref do
+    Logger.error "Error (#{inspect error}) processing previews for event #{inspect current_event}\n\n\n"
+
+    state = if retry_count > 3 do
+      Wizard.Feeds.update_event_preview_state(current_event, "failed")
+      %{state | current_event: nil, retry_count: 0}
+    else
+      retry_count = retry_count + 1
+      events = [current_event | events]
+      %{state | events: events, current_event: nil, retry_count: retry_count}
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, :normal},
+                  %{task: %{ref: task_ref}, events: events} = state)
+                  when ref == task_ref do
+
+    Logger.debug "Task is down"
 
     if length(events) > 0, do: work_soon()
 
     {:noreply, %{state | task: nil}}
   end
 
-  def handle_info({ref, {:error, error, event}},
-                  %{task: %{ref: task_ref}, events: events} = state)
-                  when ref == task_ref do
-
-    Logger.error "Error processing previews for event #{inspect event} – #{inspect error}"
-
-    work_soon()
-
-    {:noreply, %{state | events: [event | events], task: nil}}
-  end
-
   defp work_soon do
-    Process.send_after(self(), :work, 100)
+    Logger.debug "Will work soon"
+    Process.send_after(self(), :work, 1000)
   end
 
   def start_link do

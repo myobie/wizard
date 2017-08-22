@@ -2,7 +2,9 @@ defmodule Wizard.PreviewGenerator do
   require Logger
   alias Wizard.Feeds
   alias Wizard.Feeds.Event
-  alias Wizard.PreviewGenerator.{Downloader, ExportedFile, Previews, Sketch, Uploader}
+  alias Wizard.PreviewGenerator.{Downloader, ExportedFile, Previews, Server, Sketch, Uploader}
+
+  def start_link, do: Server.start_link
 
   @spec process(Event.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
   def process(%Event{} = event) do

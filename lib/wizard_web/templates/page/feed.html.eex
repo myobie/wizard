@@ -5,6 +5,12 @@
         <%= format_actors(event.actors) %>
         updated a file
         <%= format_file_name(event) %>
+
+        <%= for preview <- event.previews do %>
+          <p>
+            <img src="<%= preview_path @conn, :preview, preview.id %>">
+          </p>
+        <% end %>
       </li>
     <% end %>
   <% end %>

@@ -1,13 +1,23 @@
 defmodule Wizard.PreviewGenerator.Previews do
   require Logger
+  import Ecto.Query
   alias Wizard.Repo
   alias Ecto.Multi
   alias Wizard.Feeds.Preview
   alias Wizard.PreviewGenerator.ExportedFile
 
   @spec insert_previews_for_files(list(ExportedFile.t)) :: {:ok, list(ExportedFile.t)} | {:error, atom}
+  def insert_previews_for_files([]), do: {:ok, []}
+
   def insert_previews_for_files(files) do
-    case insert_previews_for_files(Multi.new, files) do
+    event = List.first(files).event
+
+    multi = Multi.new
+            |> Multi.delete_all(:delete,
+                                from(p in Preview,
+                                     where: p.event_id == ^event.id))
+
+    case insert_previews_for_files(multi, files) do
       {:ok, results} ->
         {:ok, for {{:preview, uuid}, preview} <- results do
           file = Enum.find(files, fn f -> f.uuid == uuid end)

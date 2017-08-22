@@ -9,6 +9,8 @@ defmodule Wizard.PreviewGenerator.Getter do
   def get_preview(%Preview{} = preview, size) do
     uri = RemoteStorage.get_uri(preview.path, size)
 
+    Logger.debug "getting preview #{preview.path}"
+
     case HTTPoison.get(to_string(uri)) do
       {:ok, %{status_code: 200, body: body, headers: headers}} ->
         content_type = Enum.find_value(headers, "application/octet-stream", fn {name, value} ->

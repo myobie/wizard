@@ -114,6 +114,12 @@ defmodule Wizard.Feeds do
     |> Repo.insert(@on_conflict_options)
   end
 
+  def update_event_preview_state(event, state) do
+    event
+    |> Ecto.Changeset.cast(%{preview_state: state}, [:preview_state])
+    |> Repo.update()
+  end
+
   @feed_conflict_query from f in Feed,
                          update: [set: [
                            drive_id: fragment("EXCLUDED.drive_id")

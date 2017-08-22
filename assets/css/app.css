@@ -17,3 +17,7 @@ ol {
 li {
   margin: 1em;
 }
+
+img {
+  max-width: 100%;
+}

@@ -304,11 +304,18 @@ defmodule Wizard.Sharepoint do
       |> Events.prepare_item_event(item, user)
       |> Keyword.merge([feed: feed])
       |> Feeds.upsert_event()
+      |> notify_preview_generator()
     else
       {:ok, nil}
     end
   end
   defp upsert_item_event_multi_body(_, _), do: {:ok, nil}
+
+  defp notify_preview_generator({:ok, event}) do
+    GenServer.cast(Wizard.PreviewGenerator.Server, {:process, event})
+    {:ok, event}
+  end
+  defp notify_preview_generator(error), do: error
 
   @spec item_event_type(Item.t) :: :create | :update | :delete
   defp item_event_type(%Item{} = item) do

@@ -44,7 +44,9 @@ defmodule Wizard.PreviewGenerator.Downloader do
         case File.mkdir_p(full_dir) do
           :ok ->
             {:ok, full_dir}
-          error -> error
+          error ->
+            Logger.error "tmp_dir() failed: #{inspect error}"
+            error
         end
     end
   end

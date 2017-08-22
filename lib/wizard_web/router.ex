@@ -22,6 +22,7 @@ defmodule WizardWeb.Router do
 
     get "/", PageController, :index
     get "/feed", PageController, :feed
+    get "/feed/previews/:id", PageController, :preview, as: :preview
 
     get "/signin", AuthenticationController, :signin
   end

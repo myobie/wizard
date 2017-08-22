@@ -20,11 +20,11 @@ defmodule Wizard.PreviewGenerator.RemoteStorage do
     do: @container_uri
 
   def get_uri(path, size) do
-    token = get_token()
-            |> SasToken.sign(@decoded_access_key)
-
     remote_path = path
                   |> sized(size)
+
+    token = get_token(remote_path)
+            |> SasToken.sign(@decoded_access_key)
 
     @container_uri
     |> URI.merge(@container_uri.path <> remote_path)
@@ -47,9 +47,9 @@ defmodule Wizard.PreviewGenerator.RemoteStorage do
   def upload_token,
     do: SasToken.put(account: @storage_account, container: @container)
 
-  @spec get_token() :: SasToken.t
-  def get_token,
-    do: SasToken.get(account: @storage_account, container: @container)
+  @spec get_token(String.t) :: SasToken.t
+  def get_token(path),
+    do: SasToken.get(account: @storage_account, container: @container, path: path)
 
   @spec sized(String.t, String.t) :: String.t
   defp sized(path, size) do
