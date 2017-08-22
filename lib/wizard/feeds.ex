@@ -19,7 +19,7 @@ defmodule Wizard.Feeds do
   @type ids :: list(id)
 
   def all_events do
-    events = from(e in Event, order_by: [desc: e.updated_at], limit: 30)
+    events = from(e in Event, order_by: [desc: e.updated_at], limit: 10)
              |> Repo.all()
 
     user_ids = events
@@ -31,7 +31,10 @@ defmodule Wizard.Feeds do
 
     indexed_users = for u <- users, into: %{}, do: {u.id, u}
 
-    for e <- events, do: preload_event_actors(e, indexed_users)
+    events = for e <- events, do: preload_event_actors(e, indexed_users)
+
+    events
+    |> Repo.preload(:previews)
   end
 
   @spec preload_event_subscription(Event.t) :: Event.t

@@ -1,11 +1,12 @@
 defmodule Wizard.Feeds.Event do
   use Wizard.Schema
-  alias Wizard.Feeds.{Event, Feed}
+  alias Wizard.Feeds.{Event, Feed, Preview}
 
   @type t :: %__MODULE__{}
 
   schema "feed_events" do
     belongs_to :feed, Feed
+    has_many :previews, Preview, foreign_key: :event_id
 
     field :type, :string
     field :actor_ids, {:array, :integer}
