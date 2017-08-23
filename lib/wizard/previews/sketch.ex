@@ -1,8 +1,7 @@
 defmodule Wizard.Previews.Sketch do
   require Logger
   alias Wizard.Previews.Sketch.Artboard
-  alias Wizard.Previews.ExportedFile
-  alias Wizard.Feeds.Event
+  alias Wizard.Previews.{Download, ExportedFile}
 
   @type artboards_result :: {:ok, list(Artboard.t)} |
                             {:error, :artboard_failed_to_parse |
@@ -13,14 +12,14 @@ defmodule Wizard.Previews.Sketch do
   @export_args ~w|export artboards --background='#ffffff' --overwriting --use-id-for-name|
   @list_args ~w|list artboards|
 
-  @spec export(Path.t, Event.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
-  def export(path, event) do
-    with {:ok, exported_files} <- export_artboards(path, event),
-         {:ok, artboards} <- list_artboards(path)
+  @spec export(Download.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
+  def export(download) do
+    with {:ok, exported_files} <- export_artboards(download),
+         {:ok, artboards} <- list_artboards(download)
     do
-      {:ok, for file <- exported_files do
-        artboard = Enum.find(artboards, fn board -> board.id == file.uuid end)
-        %{file | meta: artboard}
+      {:ok, for {uuid, name, path} <- exported_files do
+        artboard = Enum.find(artboards, fn board -> board.id == uuid end)
+        %ExportedFile{uuid: uuid, name: name, path: path, download: download, meta: artboard}
       end}
     end
   end
@@ -77,23 +76,23 @@ defmodule Wizard.Previews.Sketch do
     end
   end
 
-  @spec export_artboards(Path.t, Event.t) :: {:ok, list(ExportedFile.t)} | {:error, :sketchtool_command_failed}
-  def export_artboards(file, event) do
-    dir_path = dir(file)
-    case cmd(@command, args(:export, file), cd: dir_path) do
-      {output, 0} -> {:ok, parse_exported_filenames(output, dir_path, event)}
+  @spec export_artboards(Download.t) :: {:ok, list({String.t, String.t, String.t})} | {:error, :sketchtool_command_failed}
+  def export_artboards(download) do
+    dir_path = dir(download.path)
+    case cmd(@command, args(:export, download.path), cd: dir_path) do
+      {output, 0} -> {:ok, parse_exported_filenames(output, dir_path)}
       {message, code} ->
         Logger.error "sketchtool command failed with status #{code} and message: #{message}"
         {:error, :sketchtool_command_failed}
     end
   end
 
-  @spec parse_exported_filenames(String.t, String.t, Event.t) :: list(ExportedFile.t)
-  def parse_exported_filenames(output, dir_path, event) do
+  @spec parse_exported_filenames(String.t, String.t) :: list({String.t, String.t, String.t})
+  def parse_exported_filenames(output, dir_path) do
     for line <- lines(output) do
       filename = parse_filename(line)
       uuid = parse_uuid(filename)
-      %ExportedFile{uuid: uuid, name: filename, path: dir_path, event: event}
+      {uuid, filename, dir_path}
     end
   end
 
@@ -112,9 +111,9 @@ defmodule Wizard.Previews.Sketch do
   defp parse_uuid(<<id :: binary-size(36)>> <> ".png"), do: to_string(id)
   defp parse_uuid(string), do: string
 
-  @spec list_artboards(Path.t) :: artboards_result
-  def list_artboards(file) do
-    case cmd(@command, args(:list, file), cd: dir(file)) do
+  @spec list_artboards(Download.t) :: artboards_result
+  def list_artboards(download) do
+    case cmd(@command, args(:list, download.path), cd: dir(download.path)) do
       {json, 0} -> parse_artboards_json(json)
       {message, code} ->
         Logger.error "sketchtool command failed with status #{code} and message: #{message}"

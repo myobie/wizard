@@ -1,16 +1,17 @@
 defmodule Wizard.RemoteStorage.Putter do
   require Logger
   alias Wizard.RemoteStorage
+  alias Wizard.RemoteStorage.Upload
   alias Wizard.Previews.ExportedFile
 
   @png_blob_headers %{"Content-type" => "image/png",
                       "x-ms-blob-type" => "BlockBlob"}
 
-  @spec put_exported_files(list(ExportedFile.t)) :: {:ok, list(ExportedFile.t)} | {:error, atom}
+  @spec put_exported_files(list(ExportedFile.t)) :: {:ok, list(Upload.t)} | {:error, atom}
   def put_exported_files(files),
     do: put_exported_files([], files)
 
-  @spec put_exported_files(list(ExportedFile.t), list(ExportedFile.t)) :: {:ok, list(ExportedFile.t)} | {:error, atom}
+  @spec put_exported_files(list(Upload.t), list(ExportedFile.t)) :: {:ok, list(Upload.t)} | {:error, atom}
   def put_exported_files(result, []), do: {:ok, result}
 
   def put_exported_files(result, [file | files]) do
@@ -23,16 +24,15 @@ defmodule Wizard.RemoteStorage.Putter do
     end
   end
 
-  @spec put_exported_file(ExportedFile.t) :: {:ok, ExportedFile.t} | {:error, :put_request_failed}
+  @spec put_exported_file(ExportedFile.t) :: {:ok, Upload.t} | {:error, :put_request_failed}
   def put_exported_file(file) do
-    uri = ExportedFile.remote_path(file)
-          |> RemoteStorage.put_uri("1x")
+    remote_path = ExportedFile.remote_path(file)
+    local_path = Path.join(file.path, file.name)
+    uri = RemoteStorage.put_uri(remote_path, "1x")
 
-    file = %{file | put_uri: uri}
-
-    case request(file) do
+    case request(to_string(uri), local_path) do
       {:ok, %HTTPoison.Response{status_code: 201}} ->
-        {:ok, file}
+        {:ok, %Upload{remote_path: remote_path, file: file}}
       {:error, response} ->
         Logger.error "put request failed #{inspect response}"
         Logger.error inspect(file)
@@ -40,11 +40,7 @@ defmodule Wizard.RemoteStorage.Putter do
     end
   end
 
-  @spec request(ExportedFile.t) :: {:ok, HTTPoison.Response.t} | {:error, HTTPoison.Error.t}
-  defp request(%ExportedFile{put_uri: url, name: name, path: path}),
-    do: request(to_string(url), Path.join(path, name))
-
-  @spec request(String.t, String.t) :: {:ok, HTTPoison.Response.t} | {:error, HTTPoison.Error.t}
+  @spec request(String.t, Path.t) :: {:ok, HTTPoison.Response.t} | {:error, HTTPoison.Error.t}
   defp request(url, local_path) do
     HTTPoison.put(url, {:file, local_path}, @png_blob_headers)
   end

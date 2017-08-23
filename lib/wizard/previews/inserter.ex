@@ -3,25 +3,28 @@ defmodule Wizard.Previews.Inserter do
   import Ecto.Query
   alias Wizard.Repo
   alias Ecto.Multi
-  alias Wizard.Feeds.Preview
-  alias Wizard.Previews.ExportedFile
+  alias Wizard.Feeds
+  alias Wizard.RemoteStorage
+  alias Wizard.Previews.{ExportedFile, Download}
 
-  @spec insert_previews_for_files(list(ExportedFile.t)) :: {:ok, list(ExportedFile.t)} | {:error, atom}
-  def insert_previews_for_files([]), do: {:ok, []}
+  @spec insert_previews_for_uploads(list(RemoteStorage.Upload.t)) :: {:ok, list(Feeds.Preview.t)} | {:error, atom}
+  def insert_previews_for_uploads([]), do: {:ok, []}
 
-  def insert_previews_for_files(files) do
-    event = List.first(files).event
+  def insert_previews_for_uploads(uploads) do
+    # NOTE: assuming all uploads are for the same event
+    event = uploads
+            |> List.first()
+            |> find_event()
 
     multi = Multi.new
             |> Multi.delete_all(:delete,
-                                from(p in Preview,
+                                from(p in Feeds.Preview,
                                      where: p.event_id == ^event.id))
 
-    case insert_previews_for_files(multi, files) do
+    case insert_previews_for_uploads(multi, uploads) do
       {:ok, results} ->
-        {:ok, for {{:preview, uuid}, preview} <- results do
-          file = Enum.find(files, fn f -> f.uuid == uuid end)
-          %{file | preview: preview}
+        {:ok, for {{:preview, _}, preview} <- results do
+          preview
         end}
       {:error, error} ->
         Logger.error "Database error when inserting previews: #{inspect error}"
@@ -33,22 +36,25 @@ defmodule Wizard.Previews.Inserter do
     end
   end
 
-  def insert_previews_for_files(multi, []),
+  defp find_event(%RemoteStorage.Upload{file: %ExportedFile{download: %Download{event: %Feeds.Event{} = event}}}),
+    do: event
+
+  def insert_previews_for_uploads(multi, []),
     do: Repo.transaction(multi)
 
-  def insert_previews_for_files(multi, [file | files]) do
+  def insert_previews_for_uploads(multi, [upload | uploads]) do
     multi
-    |> insert_preview_for_file(file)
-    |> insert_previews_for_files(files)
+    |> insert_preview_for_upload(upload)
+    |> insert_previews_for_uploads(uploads)
   end
 
-  def insert_preview_for_file(multi, file) do
+  def insert_preview_for_upload(multi, upload) do
     multi
-    |> Multi.insert({:preview, file.uuid}, changeset(file))
+    |> Multi.insert({:preview, upload.file.uuid}, changeset(upload))
   end
 
-  @spec changeset(ExportedFile.t) :: Ecto.Changeset.t
-  defp changeset(file) do
+  @spec changeset(RemoteStorage.Upload.t) :: Ecto.Changeset.t
+  defp changeset(%RemoteStorage.Upload{file: file}) do
     %{
       name: file.meta.name,
       width: file.meta.width,
@@ -56,6 +62,6 @@ defmodule Wizard.Previews.Inserter do
       path: ExportedFile.remote_path(file),
       sizes: ["1x"]
     }
-    |> Preview.changeset(event: file.event)
+    |> Feeds.Preview.changeset(event: file.download.event)
   end
 end

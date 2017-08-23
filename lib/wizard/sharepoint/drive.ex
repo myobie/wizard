@@ -1,11 +1,13 @@
 defmodule Wizard.Sharepoint.Drive do
   use Wizard.Schema
   alias Wizard.Sharepoint.{Drive, Site}
+  alias Wizard.Subscriber.Subscription
 
   @type t :: %__MODULE__{}
 
   schema "sharepoint_drives" do
     belongs_to :site, Site
+    has_one :subscription, Subscription, foreign_key: :drive_id
 
     field :remote_id, :string
     field :name, :string

@@ -1,13 +1,12 @@
 defmodule Wizard.Previews do
-  require Logger
   alias Wizard.Previews.{Downloader, Inserter, Sketch}
 
-  def export_sketch(path, event),
-    do: Sketch.export(path, event)
+  def export_sketch_artboards_to_files(download),
+    do: Sketch.export(download)
 
-  def download(subject, user),
-    do: Downloader.download(subject, user)
+  def download(event),
+    do: Downloader.download(event)
 
-  def insert_previews_for_files(files),
-    do: Inserter.insert_previews_for_files(files)
+  def insert_previews_for_uploads(uploads),
+    do: Inserter.insert_previews_for_uploads(uploads)
 end

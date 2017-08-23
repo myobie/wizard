@@ -1,7 +1,6 @@
 defmodule Wizard.Previews.Generator do
   require Logger
   alias Wizard.Feeds
-  alias Wizard.Feeds.Event
   alias Wizard.RemoteStorage
   alias Wizard.Previews
   alias Wizard.Previews.ExportedFile
@@ -9,35 +8,17 @@ defmodule Wizard.Previews.Generator do
 
   def start_link, do: Server.start_link
 
-  @spec process(Event.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
-  def process(%Event{} = event) do
-    event = preload_event(event)
+  @spec process(Feeds.Event.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
+  def process(%Feeds.Event{} = event) do
+    # NOTE: the assumption is that all events
+    # are a sharepoint item and are sketch files
 
-    with {:ok, download} <- download(event),
-      {:ok, files} <- export_sketch(download, event),
-      {:ok, files} <- put_exported_files(files),
-      {:ok, files} <- insert_previews_for_files(files)
+    with {:ok, download} <- Previews.download(event),
+      {:ok, files} <- Previews.export_sketch_artboards_to_files(download),
+      {:ok, uploads} <- RemoteStorage.put_exported_files(files),
+      {:ok, previews} <- Previews.insert_previews_for_uploads(uploads)
     do
-      Logger.debug inspect(files)
-      {:ok, files}
+      {:ok, previews}
     end
   end
-
-  def preload_event(event) do
-    event
-    |> Feeds.preload_event_subject()
-    |> Feeds.preload_event_subscription()
-  end
-
-  def insert_previews_for_files(files),
-    do: Previews.insert_previews_for_files(files)
-
-  def download(event),
-    do: Previews.download(event.subject, event.subscription.user)
-
-  def export_sketch(download, event),
-    do: Previews.export_sketch(download.path, event)
-
-  def put_exported_files(files),
-    do: RemoteStorage.put_exported_files(files)
 end

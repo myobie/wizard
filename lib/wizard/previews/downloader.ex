@@ -1,24 +1,35 @@
 defmodule Wizard.Previews.Downloader do
   require Logger
-  alias Wizard.{Repo, User}
-  alias Wizard.Sharepoint.{Api, Authorization, Item, Service}
+  alias Wizard.{Feeds, Repo, Sharepoint, Subscriber}
   alias Wizard.Previews.Download
 
-  @spec download_url(Item.t) :: String.t
-  def download_url(%Item{remote_id: item_id, drive: %{remote_id: drive_id, site: %{service: %{endpoint_uri: endpoint_uri}}}}) do
-    "#{endpoint_uri}/v2.0/drives/#{drive_id}/items/#{item_id}/content"
+  @spec download(Feeds.Event.t) :: {:ok, Download.t} | {:error, atom}
+  def download(%Feeds.Event{subject: nil} = event) do
+    event
+    |> Feeds.preload_event_subject()
+    |> download()
   end
 
-  @spec download(Item.t, User.t) :: {:ok, Download.t} | {:error, atom}
-  def download(%Item{} = item, %User{} = user) do
-    with item = Repo.preload(item, drive: [site: :service]),
-         url = download_url(item),
-         {:ok, auth} <- find_authorization(item.drive.site.service, user),
-         {:ok, dir_path} <- tmpdir(),
-         path = Path.join(dir_path, item.name),
-         :ok <- clear(path),
-         :ok <- Api.download(url, to: path, access_token: auth.access_token),
-     do: {:ok, %Download{url: url, path: path}}
+  def download(%Feeds.Event{subject: %Sharepoint.Item{} = item} = event) do
+    item = Repo.preload(item, drive: :subscription)
+
+    with url = download_url(item),
+      auth = Subscriber.find_authorization(item.drive.subscription),
+      {:ok, dir_path} <- tmpdir(),
+      path = Path.join(dir_path, item.name),
+      :ok <- clear(path),
+      :ok <- Sharepoint.Api.download(url, to: path, access_token: auth.access_token)
+    do
+      {:ok, %Download{url: url, path: path, event: event}}
+    end
+  end
+
+  def download(%Feeds.Event{}),
+    do: {:error, :unkown_event_subject_type}
+
+  @spec download_url(Sharepoint.Item.t) :: String.t
+  defp download_url(%Sharepoint.Item{remote_id: item_id, drive: %{remote_id: drive_id, site: %{service: %{endpoint_uri: endpoint_uri}}}}) do
+    "#{endpoint_uri}/v2.0/drives/#{drive_id}/items/#{item_id}/content"
   end
 
   @spec clear(Path.t) :: :ok | {:error, atom}
@@ -43,14 +54,6 @@ defmodule Wizard.Previews.Downloader do
             Logger.error "tmp_dir() failed: #{inspect error}"
             error
         end
-    end
-  end
-
-  @spec find_authorization(Service.t, User.t) :: {:ok, Authorization.t} | {:error, :authorization_not_found}
-  defp find_authorization(%Service{} = service, %User{} = user) do
-    case Repo.get_by(Authorization, service_id: service.id, user_id: user.id) do
-      nil -> {:error, :authorization_not_found}
-      auth -> {:ok, auth}
     end
   end
 end

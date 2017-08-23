@@ -65,7 +65,7 @@ defmodule Wizard.Subscriber do
   end
 
   def start_link(%__MODULE__{} = subscriber) do
-    with subscriber = preload_and_authorization(subscriber),
+    with subscriber = preload(subscriber),
          {:ok, pid} <- Server.start_link(subscriber) do
       {:ok, %{subscriber | pid: pid}}
     end
@@ -81,14 +81,6 @@ defmodule Wizard.Subscriber do
     GenServer.cast(subscriber.pid, :sync)
   end
 
-  @spec preload_and_authorization(t) :: t
-  def preload_and_authorization(%__MODULE__{} = subscriber) do
-    subscriber
-    |> preload()
-    |> setup_feed()
-    |> authorization()
-  end
-
   def setup_feed(%__MODULE__{subscription: %{drive: drive}} = subscriber) do
     case Feeds.upsert_feed(drive: drive) do
       {:ok, feed} ->
@@ -100,21 +92,32 @@ defmodule Wizard.Subscriber do
 
   @spec preload(t) :: t
   def preload(%__MODULE__{subscription: subscription} = subscriber) do
-    subscription = subscription
-                   |> Repo.preload(drive: [site: :service])
-                   |> Repo.preload(:user)
+    subscription = preload_subscription(subscription)
+    auth = find_authorization(subscription)
 
-    %{subscriber | subscription: subscription}
+    %{subscriber | subscription: subscription, authorization: auth}
   end
 
-  @spec authorization(t) :: t
-  def authorization(%__MODULE__{subscription: %{user: %{id: user_id}, drive: %{site: %{service: %{id: service_id}}}}} = subscriber) do
+  defp preload_subscription(%Subscription{} = subscription) do
+    subscription
+    |> Repo.preload(drive: [site: :service])
+    |> Repo.preload(:user)
+  end
+
+  @spec find_authorization(Subscription.t) :: Authorization.t
+  def find_authorization(%Subscription{user: %{id: user_id}, drive: %{site: %{service: %{id: service_id}}}} = subscription) do
     case Repo.get_by(Authorization, user_id: user_id, service_id: service_id) do
       nil ->
-        raise AuthorizationNotFoundError, message: "subscription '#{subscriber.subscription.id}' does not have an associated sharepoint_authorizations record"
+        raise AuthorizationNotFoundError, message: "subscription '#{subscription.id}' does not have an associated sharepoint_authorizations record"
       authorization ->
-        %{subscriber | authorization: authorization}
+        authorization
     end
+  end
+
+  def find_authorization(%Subscription{} = subscription) do
+    subscription
+    |> preload_subscription()
+    |> find_authorization()
   end
 
   def reload_subscription(%__MODULE__{subscription: subscription} = subscriber) do
