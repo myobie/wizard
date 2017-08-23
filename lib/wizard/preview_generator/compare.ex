@@ -14,38 +14,14 @@ defmodule Wizard.PreviewGenerator.Compare do
     end
   end
 
-  defp is_same_size?(png1, png2) do
-    png1.width == png2.width && png1.height == png2.height
-  end
+  defp is_same_size?(png1, png2),
+    do: png1.width == png2.width && png1.height == png2.height
 
-  defp is_same_bit_depth?(png1, png2) do
-    png1.bit_depth == png2.bit_depth
-  end
+  defp is_same_bit_depth?(png1, png2),
+    do: png1.bit_depth == png2.bit_depth
 
   defp has_same_pixels?(png1, png2),
-    do: has_same_pixels_for_rows?(png1.pixels, png2.pixels)
-
-  defp has_same_pixels_for_rows?([], []), do: true
-  defp has_same_pixels_for_rows?([_ | _], []), do: false
-  defp has_same_pixels_for_rows?([], [_ | _]), do: false
-  defp has_same_pixels_for_rows?([row1 | rows1], [row2 | rows2]) do
-    if has_same_pixels_for_row?(row1, row2) do
-      has_same_pixels_for_rows?(rows1, rows2)
-    else
-      false
-    end
-  end
-
-  defp has_same_pixels_for_row?([], []), do: true
-  defp has_same_pixels_for_row?([_ | _], []), do: false
-  defp has_same_pixels_for_row?([], [_ | _]), do: false
-  defp has_same_pixels_for_row?([pixel1 | row1], [pixel2 | row2]) do
-    if pixel1 == pixel2 do
-      has_same_pixels_for_row?(row1, row2)
-    else
-      false
-    end
-  end
+    do: png1.pixels == png2.pixels
 
   @spec load(list(Path.t)) :: {:ok, list(map)} | {:error, any}
   defp load(paths), do: load([], paths)
