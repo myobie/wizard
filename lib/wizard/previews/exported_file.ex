@@ -1,8 +1,8 @@
-defmodule Wizard.PreviewGenerator.ExportedFile do
+defmodule Wizard.Previews.ExportedFile do
   defstruct uuid: "",
             name: "",
             path: "",
-            upload_uri: "",
+            put_uri: "",
             event: nil,
             preview: nil,
             meta: %{}

@@ -1,4 +1,4 @@
-defmodule Wizard.PreviewGenerator.Compare do
+defmodule Wizard.Previews.Compare do
   require Logger
 
   @spec is_same_png?(Path.t, Path.t) :: boolean | {:error, any}

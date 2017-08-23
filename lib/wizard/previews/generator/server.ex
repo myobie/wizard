@@ -1,10 +1,10 @@
-defmodule Wizard.PreviewGenerator.Server do
+defmodule Wizard.Previews.Generator.Server do
   use GenServer
   require Logger
   import Ecto.Query
   alias Wizard.Repo
   alias Wizard.Feeds.Event
-  alias Wizard.PreviewGenerator
+  alias Wizard.Previews.Generator
 
   def init(_) do
     events = from(e in Event, where: e.preview_state == "pending")
@@ -18,7 +18,7 @@ defmodule Wizard.PreviewGenerator.Server do
   end
 
   def process(event) do
-    case PreviewGenerator.process(event) do
+    case Generator.process(event) do
       {:ok, _} -> :ok
       error -> error
     end

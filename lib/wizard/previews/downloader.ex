@@ -1,13 +1,8 @@
-defmodule Wizard.PreviewGenerator.Downloader.Download do
-  defstruct url: "", path: ""
-  @type t :: %__MODULE__{}
-end
-
-defmodule Wizard.PreviewGenerator.Downloader do
+defmodule Wizard.Previews.Downloader do
   require Logger
   alias Wizard.{Repo, User}
   alias Wizard.Sharepoint.{Api, Authorization, Item, Service}
-  alias Wizard.PreviewGenerator.Downloader.Download
+  alias Wizard.Previews.Download
 
   @spec download_url(Item.t) :: String.t
   def download_url(%Item{remote_id: item_id, drive: %{remote_id: drive_id, site: %{service: %{endpoint_uri: endpoint_uri}}}}) do

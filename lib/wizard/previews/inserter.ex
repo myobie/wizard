@@ -1,10 +1,10 @@
-defmodule Wizard.PreviewGenerator.Previews do
+defmodule Wizard.Previews.Inserter do
   require Logger
   import Ecto.Query
   alias Wizard.Repo
   alias Ecto.Multi
   alias Wizard.Feeds.Preview
-  alias Wizard.PreviewGenerator.ExportedFile
+  alias Wizard.Previews.ExportedFile
 
   @spec insert_previews_for_files(list(ExportedFile.t)) :: {:ok, list(ExportedFile.t)} | {:error, atom}
   def insert_previews_for_files([]), do: {:ok, []}

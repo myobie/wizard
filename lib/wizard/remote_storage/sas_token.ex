@@ -1,4 +1,4 @@
-defmodule Wizard.PreviewGenerator.Uploader.SasToken do
+defmodule Wizard.RemoteStorage.SasToken do
   @permissions %{read: "r",
                  write: "w",
                  delete: "d",

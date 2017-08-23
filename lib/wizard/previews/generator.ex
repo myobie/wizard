@@ -1,8 +1,11 @@
-defmodule Wizard.PreviewGenerator do
+defmodule Wizard.Previews.Generator do
   require Logger
   alias Wizard.Feeds
   alias Wizard.Feeds.Event
-  alias Wizard.PreviewGenerator.{Downloader, ExportedFile, Previews, Server, Sketch, Uploader}
+  alias Wizard.RemoteStorage
+  alias Wizard.Previews
+  alias Wizard.Previews.ExportedFile
+  alias Wizard.Previews.Generator.Server
 
   def start_link, do: Server.start_link
 
@@ -11,9 +14,10 @@ defmodule Wizard.PreviewGenerator do
     event = preload_event(event)
 
     with {:ok, download} <- download(event),
-         {:ok, files} <- export_sketch(download, event),
-         {:ok, files} <- upload_exported_files(files),
-         {:ok, files} <- insert_previews_for_files(files) do
+      {:ok, files} <- export_sketch(download, event),
+      {:ok, files} <- put_exported_files(files),
+      {:ok, files} <- insert_previews_for_files(files)
+    do
       Logger.debug inspect(files)
       {:ok, files}
     end
@@ -29,11 +33,11 @@ defmodule Wizard.PreviewGenerator do
     do: Previews.insert_previews_for_files(files)
 
   def download(event),
-    do: Downloader.download(event.subject, event.subscription.user)
+    do: Previews.download(event.subject, event.subscription.user)
 
   def export_sketch(download, event),
-    do: Sketch.export(download.path, event)
+    do: Previews.export_sketch(download.path, event)
 
-  def upload_exported_files(files),
-    do: Uploader.upload_exported_files(files)
+  def put_exported_files(files),
+    do: RemoteStorage.put_exported_files(files)
 end

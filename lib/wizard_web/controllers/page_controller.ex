@@ -1,7 +1,8 @@
 defmodule WizardWeb.PageController do
   use WizardWeb, :controller
   alias Wizard.Repo
-  alias Wizard.PreviewGenerator.Getter
+  alias Wizard.RemoteStorage
+  alias Wizard.Previews.PNG
   alias Wizard.Feeds.Preview
 
   def index(conn, _params) do
@@ -13,12 +14,14 @@ defmodule WizardWeb.PageController do
     render conn, "feed.html", events: events
   end
 
+  @png_content_type "image/png"
+
   def preview(conn, %{"id" => id}) do
     with {:ok, preview} <- find_preview(id),
-         {:ok, %{body: body, content_type: content_type}} <- Getter.get_preview(preview) do
+         {:ok, png} <- RemoteStorage.get_preview(preview) do
       conn
-      |> put_resp_header("content-type", content_type)
-      |> send_resp(200, body)
+      |> put_resp_header("content-type", @png_content_type)
+      |> send_resp(200, PNG.to_binary(png))
     end
   end
 

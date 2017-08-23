@@ -1,12 +1,7 @@
-defmodule Wizard.PreviewGenerator.Sketch.Artboard do
-  defstruct id: "", name: "", width: 0, height: 0
-  @type t :: %__MODULE__{}
-end
-
-defmodule Wizard.PreviewGenerator.Sketch do
+defmodule Wizard.Previews.Sketch do
   require Logger
-  alias Wizard.PreviewGenerator.Sketch.Artboard
-  alias Wizard.PreviewGenerator.ExportedFile
+  alias Wizard.Previews.Sketch.Artboard
+  alias Wizard.Previews.ExportedFile
   alias Wizard.Feeds.Event
 
   @type artboards_result :: {:ok, list(Artboard.t)} |
@@ -21,7 +16,8 @@ defmodule Wizard.PreviewGenerator.Sketch do
   @spec export(Path.t, Event.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
   def export(path, event) do
     with {:ok, exported_files} <- export_artboards(path, event),
-         {:ok, artboards} <- list_artboards(path) do
+         {:ok, artboards} <- list_artboards(path)
+    do
       {:ok, for file <- exported_files do
         artboard = Enum.find(artboards, fn board -> board.id == file.uuid end)
         %{file | meta: artboard}
