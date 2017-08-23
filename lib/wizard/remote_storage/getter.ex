@@ -38,7 +38,7 @@ defmodule Wizard.RemoteStorage.Getter do
 
   defp content_type(headers) do
     Enum.find_value(headers, "application/octet-stream", fn {name, value} ->
-      if name == "content-type", do: value
+      if name == "Content-Type", do: value
     end)
   end
 end
