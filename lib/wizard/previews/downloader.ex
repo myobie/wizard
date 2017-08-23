@@ -11,7 +11,7 @@ defmodule Wizard.Previews.Downloader do
   end
 
   def download(%Feeds.Event{subject: %Sharepoint.Item{} = item} = event) do
-    item = Repo.preload(item, drive: :subscription)
+    item = Repo.preload(item, drive: [:subscription, site: :service])
 
     with url = download_url(item),
       auth = Subscriber.find_authorization(item.drive.subscription),
