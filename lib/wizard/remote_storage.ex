@@ -26,6 +26,10 @@ defmodule Wizard.RemoteStorage do
   def get_preview(preview, size),
     do: Getter.get_preview(preview, size)
 
+  def get_preview_raw_data(preview), do: Getter.get_preview_raw_data(preview)
+  def get_preview_raw_data(preview, size),
+    do: Getter.get_preview_raw_data(preview, size)
+
   def get_uri(path, size) do
     remote_path = path
                   |> sized(size)

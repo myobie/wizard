@@ -8,6 +8,16 @@ defmodule Wizard.RemoteStorage.Getter do
 
   @spec get_preview(Preview.t, String.t) :: {:ok, PNG.t} | {:error, :get_preview_failed}
   def get_preview(%Preview{} = preview, size \\ @default_size) do
+    case get_preview_raw_data(preview, size) do
+      {:ok, data} ->
+        PNG.from_binary(data, name: preview.name)
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  @spec get_preview_raw_data(Preview.t, String.t) :: {:ok, binary} | {:error, :get_preview_failed}
+  def get_preview_raw_data(%Preview{} = preview, size \\ @default_size) do
     uri = RemoteStorage.get_uri(preview.path, size)
 
     Logger.debug "getting preview #{preview.path}"
@@ -16,7 +26,7 @@ defmodule Wizard.RemoteStorage.Getter do
       {:ok, %{status_code: 200, body: body, headers: headers}} ->
         case content_type(headers) do
           "image/png" ->
-            PNG.from_binary(body, name: preview.name)
+            {:ok, body}
           _ ->
             {:error, :unknown_preview_file_type}
         end
@@ -41,4 +51,5 @@ defmodule Wizard.RemoteStorage.Getter do
       if name == "Content-Type", do: value
     end)
   end
+
 end
