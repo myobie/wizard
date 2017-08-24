@@ -7,6 +7,9 @@ defmodule Wizard.Previews.Generator do
 
   def start_link, do: Server.start_link
 
+  def process_later(%Feeds.Event{} = event),
+    do: GenServer.cast(Server, {:process, event})
+
   @spec process(Feeds.Event.t) :: {:ok, list(Feeds.Preview.t)} | {:error, atom}
   def process(%Feeds.Event{} = event) do
     # NOTE: the assumption is that all events

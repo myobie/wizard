@@ -26,8 +26,9 @@ defmodule Wizard.Previews.Generator.Server do
 
   def handle_cast({:process, event},
                   %{events: events, task: task} = state) do
-    unless task,
-      do: work_soon()
+    Logger.debug "handling a :process request"
+
+    unless task, do: work_soon()
 
     {:noreply, %{state | events: events ++ [event]}}
   end
@@ -43,8 +44,8 @@ defmodule Wizard.Previews.Generator.Server do
   def handle_info({ref, :ok},
                   %{task: %{ref: task_ref},
                     current_event: current_event} = state)
-                  when ref == task_ref do
-
+  when ref == task_ref
+  do
     Wizard.Feeds.update_event_preview_state(current_event, "complete")
 
     Logger.debug "Finishing processing previews for event #{inspect current_event}\n\n\n"

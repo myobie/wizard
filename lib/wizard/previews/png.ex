@@ -1,4 +1,6 @@
 defmodule Wizard.Previews.PNG do
+  require Logger
+
   defstruct name: nil,
             image: %Imagineer.Image.PNG{}
 
@@ -36,12 +38,14 @@ defmodule Wizard.Previews.PNG do
   def from_binary(data, opts \\ []) do
     with name = Keyword.get(opts, :name),
       :png <- Imagineer.FormatDetector.detect(data),
-      {:ok, image} <- Imagineer.Image.PNG.process(data)
+      %Imagineer.Image.PNG{} = image <- Imagineer.Image.PNG.process(data)
     do
       {:ok, %__MODULE__{image: image, name: name}}
     else
       :unkown -> {:error, :not_a_valid_png}
-      error -> error
+      error ->
+        Logger.error "Error processing image #{inspect error}"
+        {:error, :not_a_valid_png}
     end
   end
 end

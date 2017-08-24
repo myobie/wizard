@@ -83,8 +83,8 @@ defmodule Wizard.Subscriber.Syncer do
     %{state | error: error, done: true} # NOTE: done
   end
 
-  defp process_items(infos, %Subscriber{subscription: %{drive: drive}, feed: feed}) do
+  defp process_items(infos, %Subscriber{subscription: %{drive: drive}}) do
     Logger.debug("processing #{length(infos)} items for drive #{drive.id}")
-    Sharepoint.upsert_or_delete_remote_items(infos, drive: drive, feed: feed)
+    Sharepoint.upsert_or_delete_remote_items(infos, drive: drive)
   end
 end

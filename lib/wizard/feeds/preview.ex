@@ -7,7 +7,7 @@ defmodule Wizard.Feeds.Preview do
   schema "feed_previews" do
     belongs_to :event, Event
 
-    field :name, :string
+    field :name, :string # TODO: make name unique per event
     field :width, :integer
     field :height, :integer
     field :path, :string

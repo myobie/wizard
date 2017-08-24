@@ -6,8 +6,7 @@ defmodule Wizard.Sharepoint do
   alias Ecto.Multi
   alias Wizard.Repo
 
-  alias Wizard.{Feeds, User}
-  alias Wizard.Feeds.Feed
+  alias Wizard.{Feeds, Previews, User}
   alias Wizard.Sharepoint.{Authorization, Drive, Events, Item, Service, Site}
   alias Wizard.Sharepoint.Api.{Authentication, Sites}
 
@@ -207,14 +206,14 @@ defmodule Wizard.Sharepoint do
     |> Multi.run(:authorizations, &(upsert_authorizations(&1, authorizations_info)))
   end
 
-  @spec upsert_remote_item(map, [drive: Drive.t, feed: Feed.t, parents: parents]) :: {:ok, any, parents} | {:error, any} | {:error, any, any, any}
-  def upsert_remote_item(info, [drive: drive, feed: feed, parents: parents]) do
+  @spec upsert_remote_item(map, [drive: Drive.t, parents: parents]) :: {:ok, any, parents} | {:error, any} | {:error, any, any, any}
+  def upsert_remote_item(info, [drive: drive, parents: parents]) do
     attrs = Item.parse_remote(info)
 
     res = Multi.new
           |> insert_user_for_item_if_not_exists(attrs)
           |> upsert_item_with_parent(attrs, drive: drive, parents: parents)
-          |> upsert_item_event(feed: feed)
+          |> upsert_item_event(drive: drive)
           |> Repo.transaction()
 
     case res do
@@ -293,26 +292,29 @@ defmodule Wizard.Sharepoint do
     end)
   end
 
-  @spec upsert_item_event(Multi.t, [feed: Feed.t]) :: Multi.t
-  defp upsert_item_event(multi, [feed: feed]) do
-    Multi.run(multi, :event, &upsert_item_event_multi_body(&1, feed))
+  @spec upsert_item_event(Multi.t, [drive: Drive.t]) :: Multi.t
+  defp upsert_item_event(multi, [drive: drive]) do
+    Multi.run(multi, :event, &upsert_item_event_multi_body(&1, drive))
   end
 
-  defp upsert_item_event_multi_body(%{item: item, user: user}, %Feed{} = feed) do
+  defp upsert_item_event_multi_body(%{item: item, user: user}, %Drive{} = drive) do
     if Events.should_emit_event?(item, user) do
+      Logger.debug "should emit event for item #{inspect item}"
       item_event_type(item)
       |> Events.prepare_item_event(item, user)
-      |> Keyword.merge([feed: feed])
+      |> Keyword.merge([feed: drive.feed])
       |> Feeds.upsert_event()
       |> notify_preview_generator()
     else
+      Logger.debug "should not emit event for item #{inspect item}"
       {:ok, nil}
     end
   end
   defp upsert_item_event_multi_body(_, _), do: {:ok, nil}
 
   defp notify_preview_generator({:ok, event}) do
-    GenServer.cast(Wizard.PreviewGenerator.Server, {:process, event})
+    Logger.debug "notifying the generator process..."
+    Previews.Generator.process_later(event)
     {:ok, event}
   end
   defp notify_preview_generator(error), do: error
@@ -344,22 +346,22 @@ defmodule Wizard.Sharepoint do
     for item <- items, into: %{}, do: {item.remote_id, item}
   end
 
-  @spec upsert_or_delete_remote_items([map], [drive: Drive.t, feed: Feed.t]) :: transaction_result
-  def upsert_or_delete_remote_items(infos, [drive: drive, feed: feed]) do
+  @spec upsert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result
+  def upsert_or_delete_remote_items(infos, [drive: drive]) do
     deletes = for info <- infos, Map.has_key?(info, "deleted"), do: info
     upserts = infos -- deletes
     parents = discover_parents(upserts, drive: drive)
 
-    delete_remote_items(deletes, drive: drive, feed: feed)
-    upsert_remote_items(upserts, drive: drive, feed: feed, parents: parents)
+    delete_remote_items(deletes, drive: drive)
+    upsert_remote_items(upserts, drive: drive, parents: parents)
   end
 
-  @spec delete_remote_items([map], [drive: Drive.t, feed: Feed.t]) :: {integer, nil | [term]}
+  @spec delete_remote_items([map], [drive: Drive.t]) :: {integer, nil | [term]}
   defp delete_remote_items([], _), do: {0, []}
 
   # TODO: loop through and delete each one so we can do an
   # event for it after determining how to know the actor
-  defp delete_remote_items(infos, [drive: %{id: drive_id}, feed: _feed]) do
+  defp delete_remote_items(infos, [drive: %{id: drive_id}]) do
     now = DateTime.utc_now()
     remote_ids = for info <- infos, Map.has_key?(info, "id"), do: info["id"]
     query = from i in Item,
@@ -370,11 +372,11 @@ defmodule Wizard.Sharepoint do
     Repo.update_all(query, [])
   end
 
-  @spec upsert_remote_items([map], [drive: Drive.t, feed: Feed.t, parents: parents]) :: :ok | {:error, any}
-  defp upsert_remote_items([info | infos], [drive: drive, feed: feed, parents: parents]) do
-    case upsert_remote_item(info, drive: drive, feed: feed, parents: parents) do
+  @spec upsert_remote_items([map], [drive: Drive.t, parents: parents]) :: :ok | {:error, any}
+  defp upsert_remote_items([info | infos], [drive: drive, parents: parents]) do
+    case upsert_remote_item(info, drive: drive, parents: parents) do
       {:ok, _, parents} ->
-        upsert_remote_items(infos, drive: drive, feed: feed, parents: parents) # NOTE: recurse
+        upsert_remote_items(infos, drive: drive, parents: parents) # NOTE: recurse
       {:error, _} = error ->
         error
       {:error, name, msg, info} ->

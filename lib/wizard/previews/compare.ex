@@ -6,10 +6,22 @@ defmodule Wizard.Previews.Compare do
 
   @spec filter_unchanged_exports(list(ExportedFile.t)) :: {:ok, list(ExportedFile.t)} | {:error, atom}
   def filter_unchanged_exports(files) do
-    files
-    |> Flow.from_enumerable()
-    |> Flow.filter(&filter_file/1)
-    |> Enum.to_list()
+    start_size = length(files)
+
+    files = files
+             |> Flow.from_enumerable()
+             |> Flow.filter(&filter_file/1)
+             |> Enum.to_list()
+
+    final_size = length(files)
+
+    if final_size < start_size do
+      Logger.debug "Only keeping #{final_size} of #{start_size} files"
+    else
+      Logger.debug "No files were filtered out"
+    end
+
+    {:ok, files}
   end
 
   @spec filter_file(ExportedFile.t) :: boolean
@@ -18,9 +30,11 @@ defmodule Wizard.Previews.Compare do
       {:ok, old_png} <- RemoteStorage.get_preview(preview),
       {:ok, new_png} <- PNG.read(Path.join(file.path, file.name))
     do
-      is_same_png?(old_png, new_png)
+      not is_same_png?(old_png, new_png)
     else
-      {:error, :not_found} -> true
+      {:error, :not_found} ->
+        Logger.error "No old preview was found for #{inspect file}"
+        true
       {:error, error} ->
         Logger.error "Error filtering file #{inspect error} – #{inspect file}"
         # NOTE: may want to raise here so the Task is aborted and we try again later
@@ -29,27 +43,26 @@ defmodule Wizard.Previews.Compare do
   end
 
   defp find_last_preview_for_file(%ExportedFile{download: %{event: event}} = file) do
-    path = ExportedFile.remote_path(file)
-
-    case last_preview(event.subject_id, event.subject_type, path) do
+    case last_preview(event, file.meta.name) do
       nil -> {:error, :not_found}
       preview -> {:ok, preview}
     end
   end
 
-  defp last_preview(subject_id, subject_type, path) do
-    last_preview_query(subject_id, subject_type, path)
+  defp last_preview(event, name) do
+    last_preview_query(event, name)
     |> Repo.one()
   end
 
-  defp last_preview_query(subject_id, subject_type, path) do
+  defp last_preview_query(event, name) do
     from(p in Feeds.Preview,
       select: p,
       join: e in assoc(p, :event),
-      where: e.subject_id == ^subject_id,
-      where: e.subject_type == ^subject_type,
-      where: p.path == ^path,
-      order_by: [desc: p.id],
+      where: e.id < ^event.id,
+      where: e.subject_id == ^event.subject_id,
+      where: e.subject_type == ^event.subject_type,
+      where: p.name == ^name,
+      order_by: [desc: e.id],
       limit: 1)
   end
 
