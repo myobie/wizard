@@ -85,6 +85,7 @@ defmodule Wizard.Feeds do
 
   @conflict_query from e in Event,
                     update: [set: [
+                      preview_state: "pending",
                       updated_at: fragment("EXCLUDED.inserted_at"),
                       actor_ids: fragment("EXCLUDED.actor_ids::int[] | ?::int[]", e.actor_ids)
                     ]]
