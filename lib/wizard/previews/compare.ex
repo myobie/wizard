@@ -42,12 +42,13 @@ defmodule Wizard.Previews.Compare do
     end
   end
 
-  defp find_last_preview_for_file(%ExportedFile{download: %{event: event}} = file) do
-    case last_preview(event, file.meta.name) do
+  defp find_last_preview_for_file(%ExportedFile{download: %{event: event}, meta: %{name: meta_name}}) do
+    case last_preview(event, meta_name) do
       nil -> {:error, :not_found}
       preview -> {:ok, preview}
     end
   end
+  defp find_last_preview_for_file(_), do: {:error, :not_found}
 
   defp last_preview(event, name) do
     last_preview_query(event, name)

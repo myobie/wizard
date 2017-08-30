@@ -37,6 +37,7 @@ defmodule Wizard.Previews.Generator.Server do
                            task: nil,
                            current_event: nil} = state) do
     task = Task.async(__MODULE__, :process, [event])
+    # FIXME: it's possible for the task to run forever!
     {:noreply, %{state | events: events, task: task, current_event: event}}
   end
   def handle_info(:work, state), do: {:noreply, state}

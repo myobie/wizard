@@ -36,16 +36,6 @@ defmodule Wizard.RemoteStorage.Getter do
     end
   end
 
-  @spec download_preview(Preview.t, String.t, [to: Path.t]) :: {:ok, Path.t} | {:error, atom}
-  def download_preview(preview, size \\ @default_size, [to: path]) do
-    with {:ok, png} <- get_preview(preview, size),
-      {:ok, _} <- PNG.write(png, to: path),
-      full_path = PNG.full_path(path, png)
-    do
-      {:ok, full_path}
-    end
-  end
-
   defp content_type(headers) do
     Enum.find_value(headers, "application/octet-stream", fn {name, value} ->
       if name == "Content-Type", do: value

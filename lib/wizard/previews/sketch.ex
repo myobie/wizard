@@ -9,7 +9,7 @@ defmodule Wizard.Previews.Sketch do
                                      :sketchtool_command_failed}
 
   @command "sketchtool"
-  @export_args ~w|export artboards --background='#ffffff' --overwriting --use-id-for-name|
+  @export_args ~w|export artboards --background='#ffffff' -f png --save-for-web --overwriting --use-id-for-name|
   @list_args ~w|list artboards|
 
   @spec export(Download.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
@@ -17,11 +17,24 @@ defmodule Wizard.Previews.Sketch do
     with {:ok, exported_files} <- export_artboards(download),
          {:ok, artboards} <- list_artboards(download)
     do
-      {:ok, for {uuid, name, path} <- exported_files do
-        artboard = Enum.find(artboards, fn board -> board.id == uuid end)
-        %ExportedFile{uuid: uuid, name: name, path: path, download: download, meta: artboard}
-      end}
+      {:ok, matchup(exported_files, artboards, download)}
     end
+  end
+
+  defp matchup(exported_files, artboards, %Download{} = download),
+    do: matchup([], exported_files, artboards, download)
+
+  defp matchup(result, _exported_files, [], %Download{} = _download), do: result
+
+  defp matchup(result, exported_files, [board | artboards], %Download{} = download) do
+     case Enum.find(exported_files, fn {uuid, _, _} -> board.id == uuid end) do
+       {uuid, name, path} ->
+         file = %ExportedFile{uuid: uuid, name: name, path: path, download: download, meta: board}
+         matchup([file | result], exported_files, artboards, download)
+       nil ->
+         Logger.error "cannot find exported file for artboard listed in sketchtool's output: #{inspect board} – #{inspect exported_files}"
+         matchup(result, exported_files, artboards, download)
+     end
   end
 
   @spec installed?() :: boolean
