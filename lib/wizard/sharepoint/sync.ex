@@ -2,10 +2,9 @@ defmodule Wizard.Sharepoint.Sync do
   require Logger
 
   alias Wizard.Sharepoint
-  alias Wizard.Sharepoint.Drive
-  alias Wizard.Sharepoint.Api.Files
+  alias Wizard.Sharepoint.{Api, Drive}
 
-  @spec run(Drive.t, [access_token: String.t]) :: {:ok, Drive.t} | {:error, any}
+  @spec run(Drive.t, Api.access) :: {:ok, Drive.t} | {:error, any}
   def run(%Drive{} = drive, [access_token: access_token]) do
     %{
       drive: drive,
@@ -26,7 +25,7 @@ defmodule Wizard.Sharepoint.Sync do
                delta_link: nil,
                next_link: nil} = state)
   do
-    Files.delta(drive, access_token: access_token)
+    Api.Files.delta(drive, access_token: access_token)
     |> process(state)
     |> fetch()
   end
@@ -35,7 +34,7 @@ defmodule Wizard.Sharepoint.Sync do
                delta_link: nil,
                next_link: next_link} = state)
   do
-    Files.next(next_link, access_token: access_token)
+    Api.Files.next(next_link, access_token: access_token)
     |> process(state)
     |> fetch()
   end
@@ -44,7 +43,7 @@ defmodule Wizard.Sharepoint.Sync do
                delta_link: delta_link,
                next_link: nil} = state)
   do
-    Files.next(delta_link, access_token: access_token)
+    Api.Files.next(delta_link, access_token: access_token)
     |> process(state)
     |> fetch()
   end
@@ -57,10 +56,12 @@ defmodule Wizard.Sharepoint.Sync do
     do: process(resp, state)
 
   defp process(%{"@odata.deltaLink" => delta_link, "value" => items},
-               %{drive: drive} = state)
+               %{drive: drive, access_token: access_token} = state)
   do
-    with :ok <- process_items(items, drive),
-         {:ok, drive} <- Sharepoint.update_drive(drive, delta_link: delta_link) do
+    with {:ok, items} <- Api.Files.get_items(items, drive, access_token: access_token),
+      :ok <- process_items(items, drive),
+      {:ok, drive} <- Sharepoint.update_drive(drive, delta_link: delta_link)
+    do
       %{state | drive: drive, delta_link: nil, next_link: nil, done: true} # NOTE: done
     else
       {:error, error} ->
@@ -69,9 +70,11 @@ defmodule Wizard.Sharepoint.Sync do
   end
 
   defp process(%{"@odata.nextLink" => next_link, "value" => items},
-               %{drive: drive} = state)
+               %{drive: drive, access_token: access_token} = state)
   do
-    with :ok <- process_items(items, drive) do
+    with {:ok, items} <- Api.Files.get_items(items, drive, access_token: access_token),
+      :ok <- process_items(items, drive)
+    do
       %{state | next_link: next_link, delta_link: nil}
     else
       {:error, error} ->

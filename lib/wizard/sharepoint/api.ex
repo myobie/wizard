@@ -4,7 +4,8 @@ defmodule Wizard.Sharepoint.Api do
   @type headers :: [{String.t, String.t}]
   @type json :: Poison.Parser.t
   @type result :: {:ok, json} | {:error, any}
-  @type opts :: [access_token: String.t] | Keyword.t
+  @type access :: [access_token: String.t] | Keyword.t
+  @type opts :: access | Keyword.t
 
   @callback get(String.t, opts) :: result
   @callback download(String.t, opts) :: :ok | {:error, atom}
