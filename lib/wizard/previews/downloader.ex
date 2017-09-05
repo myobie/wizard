@@ -18,7 +18,7 @@ defmodule Wizard.Previews.Downloader do
       {:ok, dir_path} <- tmpdir(),
       path = Path.join(dir_path, item.name),
       :ok <- clear(path),
-      :ok <- Sharepoint.Api.download(url, to: path, access_token: auth.access_token)
+      :ok <- Sharepoint.Api.client.download(url, to: path, access_token: auth.access_token)
     do
       {:ok, %Download{url: url, path: path, event: event}}
     end

@@ -7,11 +7,13 @@ defmodule Wizard.Sharepoint do
   alias Wizard.Repo
 
   alias Wizard.{Feeds, Previews, User}
-  alias Wizard.Sharepoint.{Authorization, Drive, Events, Item, Service, Site}
+  alias Wizard.Sharepoint.{Authorization, Drive, Events, Item, Service, Site, Sync}
   alias Wizard.Sharepoint.Api.{Authentication, Sites}
 
   @type transaction_result :: {:ok, any} | {:error, any} | {:error, any, any, any}
   @type parents :: %{optional(String.t) => Item.t}
+
+  def sync(drive, opts), do: Sync.run(drive, opts)
 
   @spec authorize_url(String.t) :: String.t
   def authorize_url(state),
