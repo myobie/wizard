@@ -7,17 +7,17 @@ defmodule Wizard.RemoteStorage.Putter do
   @png_blob_headers %{"Content-type" => "image/png",
                       "x-ms-blob-type" => "BlockBlob"}
 
-  @spec put_exported_files(list(ExportedFile.t)) :: {:ok, list(Upload.t)} | {:error, atom}
+  @spec put_exported_files(MapSet.t(ExportedFile.t)) :: {:ok, MapSet.t(Upload.t)} | {:error, atom}
   def put_exported_files(files),
-    do: put_exported_files([], files)
+    do: put_exported_files(MapSet.new, Enum.to_list(files))
 
-  @spec put_exported_files(list(Upload.t), list(ExportedFile.t)) :: {:ok, list(Upload.t)} | {:error, atom}
+  @spec put_exported_files(MapSet.t(Upload.t), list(ExportedFile.t)) :: {:ok, MapSet.t(Upload.t)} | {:error, atom}
   def put_exported_files(result, []), do: {:ok, result}
 
   def put_exported_files(result, [file | files]) do
     case put_exported_file(file) do
       {:ok, file} ->
-        [file | result]
+        MapSet.put(result, file)
         |> put_exported_files(files)
       {:error, :put_request_failed} ->
         {:error, :put_failed}

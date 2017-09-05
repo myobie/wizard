@@ -4,16 +4,16 @@ defmodule Wizard.Previews.Compare do
   alias Wizard.{Feeds, RemoteStorage, Repo}
   alias Wizard.Previews.{ExportedFile, PNG}
 
-  @spec filter_unchanged_exports(list(ExportedFile.t)) :: {:ok, list(ExportedFile.t)} | {:error, atom}
+  @spec filter_unchanged_exports(MapSet.t(ExportedFile.t)) :: {:ok, MapSet.t(ExportedFile.t)} | {:error, atom}
   def filter_unchanged_exports(files) do
-    start_size = length(files)
+    start_size = Enum.count(files)
 
     files = files
              |> Flow.from_enumerable()
              |> Flow.filter(&filter_file/1)
-             |> Enum.to_list()
+             |> Enum.into(MapSet.new)
 
-    final_size = length(files)
+    final_size = Enum.count(files)
 
     if final_size < start_size do
       Logger.debug "Only keeping #{final_size} of #{start_size} files"

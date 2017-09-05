@@ -12,7 +12,7 @@ defmodule Wizard.Previews.Sketch do
   @export_args ~w|export artboards --background='#ffffff' --formats='png' --save-for-web --overwriting --use-id-for-name|
   @list_args ~w|list artboards|
 
-  @spec export(Download.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
+  @spec export(Download.t) :: {:ok, MapSet.t(ExportedFile.t)} | {:error, atom}
   def export(download) do
     with {:ok, exported_files} <- export_artboards(download),
          {:ok, artboards} <- list_artboards(download)
@@ -22,7 +22,7 @@ defmodule Wizard.Previews.Sketch do
   end
 
   defp matchup(exported_files, artboards, %Download{} = download),
-    do: matchup([], exported_files, artboards, download)
+    do: matchup(MapSet.new, exported_files, artboards, download)
 
   defp matchup(result, _exported_files, [], %Download{} = _download), do: result
 
@@ -30,7 +30,7 @@ defmodule Wizard.Previews.Sketch do
      case Enum.find(exported_files, fn {uuid, _, _} -> board.id == uuid end) do
        {uuid, name, path} ->
          file = %ExportedFile{uuid: uuid, name: name, path: path, download: download, meta: board}
-         matchup([file | result], exported_files, artboards, download)
+         matchup(MapSet.put(result, file), exported_files, artboards, download)
        nil ->
          Logger.error "cannot find exported file for artboard listed in sketchtool's output: #{inspect board} – #{inspect exported_files}"
          matchup(result, exported_files, artboards, download)

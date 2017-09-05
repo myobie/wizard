@@ -7,8 +7,13 @@ defmodule Wizard.Sharepoint.Api.Files do
     |> Api.client.get(access_token: access_token)
   end
 
-  def get_item(%{"id" => id}, %Drive{} = drive, [access_token: access_token]),
+  # NOTE: only process files that are not deleted
+  def get_item(%{"deleted" => _} = item, _, _), do: {:ok, item}
+
+  def get_item(%{"id" => id, "file" => _}, %Drive{} = drive, [access_token: access_token]),
     do: get_item(id, drive, access_token: access_token)
+
+  def get_item(item, _, _), do: {:ok, item}
 
   @spec item_url(String.t, Drive.t) :: String.t
   defp item_url(id, drive),
