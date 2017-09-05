@@ -9,7 +9,7 @@ defmodule Wizard.Previews.Sketch do
                                      :sketchtool_command_failed}
 
   @command "sketchtool"
-  @export_args ~w|export artboards --background='#ffffff' -f png --save-for-web --overwriting --use-id-for-name|
+  @export_args ~w|export artboards --background='#ffffff' --formats='png' --save-for-web --overwriting --use-id-for-name|
   @list_args ~w|list artboards|
 
   @spec export(Download.t) :: {:ok, list(ExportedFile.t)} | {:error, atom}
