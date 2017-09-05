@@ -11,7 +11,7 @@ config :wizard,
 
 # Default Sharepoint api client implementation
 config :wizard,
-  sharepoint_api_client: Wizard.Sharepoint.Api
+  sharepoint_api_client: Wizard.Sharepoint.Api.Client
 
 # Configures the endpoint
 config :wizard, WizardWeb.Endpoint,
