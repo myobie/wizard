@@ -30,6 +30,7 @@ defmodule Wizard.Previews.Generator.Server do
 
     unless task, do: work_soon()
 
+    # TODO: dedup events here
     {:noreply, %{state | events: events ++ [event]}}
   end
 
