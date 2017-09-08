@@ -1,5 +1,7 @@
 defmodule WizardWeb.AuthenticationController do
+  require Logger
   use WizardWeb, :controller
+
   alias Wizard.Sharepoint
 
   def signout(conn, _params) do
@@ -21,17 +23,23 @@ defmodule WizardWeb.AuthenticationController do
 
     if original_state == state do
       case Sharepoint.authorize_sharepoints(code) do
-        {:ok, %{user: user} = results} ->
+        {:ok, %{user: user}} ->
           conn
           |> WizardWeb.Guardian.Plug.sign_in(user)
-          |> text("worked:\n\n#{inspect(results)}")
+          |> put_flash(:info, "You are now signed in #{user.email}")
+          |> redirect(to: "/")
         error ->
+          Logger.error("There was an error signing in #{inspect error}")
+
           conn
           |> put_status(500)
-          |> text("something didn't work:\n\n#{inspect(error)}")
+          |> put_flash(:error, "There was a problem signing you in with Microsoft. This happens from time to time. Sorry. Please try again.")
+          |> redirect(to: "/")
       end
     else
-      conn |> text("state didn't match")
+      conn
+      |> put_flash(:error, "Something went wrong. Sorry about that. Maybe try again?")
+      |> redirect(to: "/")
     end
   end
 end
