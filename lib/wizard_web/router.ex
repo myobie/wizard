@@ -21,8 +21,10 @@ defmodule WizardWeb.Router do
     pipe_through :browser # Use the default browser stack
 
     get "/", PageController, :index
-    get "/feed", PageController, :feed
-    get "/feed/previews/:id", PageController, :preview, as: :preview
+
+    resources "/feeds", FeedController do
+      resources "/previews", PreviewController
+    end
 
     get "/signin", AuthenticationController, :signin
   end

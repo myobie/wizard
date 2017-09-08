@@ -17,8 +17,11 @@ defmodule Wizard.Feeds do
   @type id :: non_neg_integer
   @type ids :: list(id)
 
-  def all_events do
-    events = from(e in Event, order_by: [desc: e.updated_at], limit: 10)
+  def all_events(feed_id) do
+    events = from(e in Event,
+                  where: e.feed_id == ^feed_id,
+                  order_by: [desc: e.updated_at],
+                  limit: 10)
              |> Repo.all()
 
     user_ids = events

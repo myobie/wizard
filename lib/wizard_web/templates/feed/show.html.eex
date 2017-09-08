@@ -8,7 +8,7 @@
 
         <%= for preview <- event.previews do %>
           <p>
-            <img src="<%= preview_path @conn, :preview, preview.id %>">
+            <img src="<%= feed_preview_path @conn, :preview, @feed_id, preview.id %>">
           </p>
         <% end %>
       </li>
