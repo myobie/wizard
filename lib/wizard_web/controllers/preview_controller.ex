@@ -3,7 +3,7 @@ defmodule WizardWeb.PreviewController do
   use WizardWeb, :controller
   alias Wizard.{Feeds, RemoteStorage, Repo}
 
-  plug WizardWeb.GuardianAuthPipeline
+  plug WizardWeb.EnsureAuthenticated
 
   @png_content_type "image/png"
 

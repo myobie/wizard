@@ -1,8 +1,9 @@
-defmodule WizardWeb.GuardianNoauthPipeline do
+defmodule WizardWeb.EnsureAuthenticated do
   use Guardian.Plug.Pipeline, otp_app: :wizard,
                               module: WizardWeb.Guardian,
                               error_handler: WizardWeb.AuthErrorHandler
 
   plug Guardian.Plug.VerifySession
-  plug Guardian.Plug.LoadResource, allow_blank: true
+  plug Guardian.Plug.EnsureAuthenticated
+  plug Guardian.Plug.LoadResource
 end

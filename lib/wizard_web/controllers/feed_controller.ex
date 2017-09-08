@@ -2,7 +2,7 @@ defmodule WizardWeb.FeedController do
   use WizardWeb, :controller
   alias Wizard.Feeds
 
-  plug WizardWeb.GuardianAuthPipeline
+  plug WizardWeb.EnsureAuthenticated
 
   def show(conn, %{"id" => id}) do
     events = Feeds.all_events(id)
