@@ -27,6 +27,7 @@ defmodule WizardWeb.Router do
     end
 
     get "/signin", AuthenticationController, :signin
+    get "/signout", AuthenticationController, :signout
   end
 
   scope "/notifications", WizardWeb do

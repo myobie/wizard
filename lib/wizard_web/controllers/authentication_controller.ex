@@ -2,6 +2,12 @@ defmodule WizardWeb.AuthenticationController do
   use WizardWeb, :controller
   alias Wizard.Sharepoint
 
+  def signout(conn, _params) do
+    conn
+    |> WizardWeb.Guardian.Plug.sign_out()
+    |> redirect(to: "/")
+  end
+
   def signin(conn, _params) do
     state = SecureRandom.urlsafe_base64
 
@@ -15,8 +21,10 @@ defmodule WizardWeb.AuthenticationController do
 
     if original_state == state do
       case Sharepoint.authorize_sharepoints(code) do
-        {:ok, results} ->
-          conn |> text("worked:\n\n#{inspect(results)}")
+        {:ok, %{user: user} = results} ->
+          conn
+          |> WizardWeb.Guardian.Plug.sign_in(user)
+          |> text("worked:\n\n#{inspect(results)}")
         error ->
           conn
           |> put_status(500)

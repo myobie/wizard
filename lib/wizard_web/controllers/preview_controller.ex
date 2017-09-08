@@ -3,9 +3,11 @@ defmodule WizardWeb.PreviewController do
   use WizardWeb, :controller
   alias Wizard.{Feeds, RemoteStorage, Repo}
 
+  plug WizardWeb.GuardianAuthPipeline
+
   @png_content_type "image/png"
 
-  def preview(conn, %{"feed_id" => _feed_id, "id" => id}) do
+  def show(conn, %{"feed_id" => _feed_id, "id" => id}) do
     with {:ok, preview} <- find_preview(id),
       {:ok, data} <- RemoteStorage.get_preview_raw_data(preview)
     do

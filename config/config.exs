@@ -26,15 +26,9 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-config :guardian, Guardian,
-  allowed_algos: ["HS512"], # optional
-  verify_module: Guardian.JWT,  # optional
-  issuer: "Wizard",
-  ttl: { 30, :days },
-  allowed_drift: 2000,
-  verify_issuer: true, # optional
-  secret_key: "GqlhHFPES0rBqEqNSHZayO8uQoNhnU0ymEAcMkU+oQiKZ6rP/M8l6FHYMvCaTpC3",
-  serializer: Wizard.GuardianSerializer
+config :wizard, WizardWeb.Guardian,
+ issuer: "_wizard",
+ secret_key: "C1gG4aiX/3nEI0Dy+gXF6S0SAma2p/uE+POIfKaantN5hlr1tC7UXBric/KpI3bv"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
