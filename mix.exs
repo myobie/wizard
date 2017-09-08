@@ -46,6 +46,7 @@ defmodule Wizard.Mixfile do
      {:imagineer, "~> 0.3.0"},
      {:flow, "~> 0.12.0"},
      {:guardian, "~> 1.0-beta"},
+     {:distillery, "~> 1.4", runtime: false},
      {:ex_machina, git: "https://github.com/myobie/ex_machina.git", only: :test},
      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
      {:quick_alias, "~> 0.1.0", only: :dev, runtime: false}]
