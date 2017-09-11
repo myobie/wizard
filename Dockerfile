@@ -2,7 +2,7 @@ FROM elixir:1.5.1
 
 MAINTAINER Nathan Herald
 
-RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
     apt-get install nodejs -y
 
 ENV MIX_ENV=prod
