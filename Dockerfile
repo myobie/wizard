@@ -2,6 +2,8 @@ FROM elixir:1.5.1
 
 MAINTAINER Nathan Herald
 
+CMD /bin/bash
+
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
     apt-get install nodejs -y
 
@@ -17,24 +19,26 @@ RUN mkdir config
 COPY mix.exs mix.lock /app/
 COPY config/config.exs config/prod.exs config/prod.secret.exs /app/config/
 
-RUN mix deps.get
-
-COPY lib /app/lib/
-COPY priv /app/priv/
-COPY rel /app/rel/
-
-RUN mix compile
-
-COPY assets/package.json assets/package-lock.json /app/assets/
+# Must get deps before npm install becuase some javascript is inside some of
+# the elixir packages
+RUN mix do deps.get, deps.compile
 
 WORKDIR /app/assets
+
+COPY assets/package.json assets/package-lock.json /app/assets/
 
 RUN npm install
 
 COPY assets /app/assets/
-RUN /app/assets/node_modules/brunch/bin/brunch build --production
+RUN npm run deploy
 
 WORKDIR /app
 
 RUN mix phx.digest
+
+COPY rel /app/rel/
+COPY priv /app/priv/
+COPY lib /app/lib/
+
+RUN mix compile
 RUN mix release --env=prod
