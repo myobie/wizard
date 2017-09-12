@@ -15,6 +15,7 @@ defmodule WizardWeb.Router do
 
   pipeline :aad_auth do
     plug :fetch_session
+    plug :fetch_flash
   end
 
   scope "/", WizardWeb do
