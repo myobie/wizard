@@ -6,6 +6,7 @@ defmodule Wizard.Subscriber.Server do
   require Logger
 
   @ten_seconds round(Duration.to_milliseconds(Duration.from_seconds(10)))
+  @one_minute round(Duration.to_milliseconds(Duration.from_minutes(1)))
   @ten_minutes round(Duration.to_milliseconds(Duration.from_minutes(10)))
 
   def init(%Subscriber{} = subscriber) do
@@ -72,7 +73,7 @@ defmodule Wizard.Subscriber.Server do
 
     {:noreply,
      %{state | insync: nil,
-       timer_ref: schedule_sync_for_later(timer_ref, @ten_seconds)}}
+       timer_ref: schedule_sync_for_later(timer_ref, @one_minute)}}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{insync: insync, timer_ref: timer_ref} = state) when insync == ref do
