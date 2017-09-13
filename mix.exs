@@ -46,7 +46,7 @@ defmodule Wizard.Mixfile do
      {:flow, "~> 0.12.0"},
      {:guardian, "~> 1.0-beta"},
      {:phoenix_live_reload, "~> 1.0", only: :dev},
-     {:distillery, github: "bitwalker/distillery", only: :dev, runtime: false},
+     {:distillery, github: "bitwalker/distillery", runtime: false},
      {:ex_machina, git: "https://github.com/myobie/ex_machina.git", only: :test},
      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
      {:quick_alias, "~> 0.1.0", only: :dev, runtime: false}]
