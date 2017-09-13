@@ -23,6 +23,7 @@ defmodule Wizard.Sharepoint.Api.Files do
     items = items
             |> Flow.from_enumerable()
             |> Flow.map(fn item ->
+              # FIXME: we need an easy way to abort when the access token has expired
               case get_item(item, drive, access_token: access_token) do
                 # FIXME: instead of just using what it returns
                 # we need to merge in so we don't lose temporal information
