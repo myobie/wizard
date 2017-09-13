@@ -259,8 +259,15 @@ defmodule Wizard.Sharepoint do
         |> upsert_item(item_attrs, drive: drive, parent: parent)
       :error ->
         Logger.error "cannot find parent for #{inspect({:item, item_attrs})}"
+        #
+        # multi
+        # |> Multi.error(:item, :cannot_find_parent_for_item)
+        #
+        # FIXME: for now, we are going to skip this problem,
+        # because there is some file that is hitting this point
+        #
         multi
-        |> Multi.error(:item, :cannot_find_parent_for_item)
+        |> upsert_item(item_attrs, drive: drive)
     end
   end
 
