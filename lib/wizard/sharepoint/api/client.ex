@@ -6,17 +6,19 @@ defmodule Wizard.Sharepoint.Api.Client do
   @json_content_type_header [{"Content-Type", "application/json"}]
   @form_content_type_header [{"Content-Type", "application/x-www-form-urlencoded"}]
 
+  @default_http_options [timeout: 60_000, recv_timeout: 60_000]
+
   def get(url, opts \\ []) do
     h = headers(opts)
     Logger.debug inspect({:getting, url, h})
-    decode_json_response HTTPoison.get(url, h, [])
+    decode_json_response HTTPoison.get(url, h, @default_http_options)
   end
 
   def download(url, [to: path, access_token: access_token]) do
     h = access_token_header([access_token: access_token])
     Logger.debug inspect({:getting, url, h})
 
-    with response = HTTPoison.get(url, h, []),
+    with response = HTTPoison.get(url, h, @default_http_options),
          {:ok, location} <- decode_download_response(response),
          {:ok, _} <- download_from(location, path: path),
       do: :ok
@@ -43,7 +45,7 @@ defmodule Wizard.Sharepoint.Api.Client do
     opts = opts ++ [additional_headers: @json_content_type_header]
     h = headers(opts)
     Logger.debug inspect({:posting, url, h, json})
-    decode_json_response HTTPoison.post(url, json, h, [])
+    decode_json_response HTTPoison.post(url, json, h, @default_http_options)
   end
 
   def post_form(url, body, opts \\ []) do
@@ -51,13 +53,13 @@ defmodule Wizard.Sharepoint.Api.Client do
     opts = opts ++ [additional_headers: @form_content_type_header]
     h = headers(opts)
     Logger.debug inspect({:posting_form, url, h, body})
-    decode_json_response HTTPoison.post(url, body, h, [])
+    decode_json_response HTTPoison.post(url, body, h, @default_http_options)
   end
 
   def delete(url, opts \\ []) do
     h = headers(opts)
     Logger.debug inspect({:deleting, url, h})
-    decode_json_response HTTPoison.delete(url, h, [])
+    decode_json_response HTTPoison.delete(url, h, @default_http_options)
   end
 
   @spec access_token_header(Keyword.t) :: Api.headers
