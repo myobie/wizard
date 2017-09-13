@@ -35,7 +35,6 @@ defmodule Wizard.Mixfile do
      {:phoenix_ecto, "~> 3.2"},
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 2.6"},
-     {:phoenix_live_reload, "~> 1.0", only: :dev},
      {:gettext, "~> 0.11"},
      {:cowboy, "~> 1.0"},
      {:secure_random, "~> 0.5"},
@@ -46,7 +45,8 @@ defmodule Wizard.Mixfile do
      {:imagineer, "~> 0.3.0"},
      {:flow, "~> 0.12.0"},
      {:guardian, "~> 1.0-beta"},
-     {:distillery, "~> 1.4", runtime: false},
+     {:phoenix_live_reload, "~> 1.0", only: :dev},
+     {:distillery, github: "bitwalker/distillery", only: :dev, runtime: false},
      {:ex_machina, git: "https://github.com/myobie/ex_machina.git", only: :test},
      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
      {:quick_alias, "~> 0.1.0", only: :dev, runtime: false}]
