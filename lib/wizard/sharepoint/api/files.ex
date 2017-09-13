@@ -24,6 +24,9 @@ defmodule Wizard.Sharepoint.Api.Files do
             |> Flow.from_enumerable()
             |> Flow.map(fn item ->
               case get_item(item, drive, access_token: access_token) do
+                # FIXME: instead of just using what it returns
+                # we need to merge in so we don't lose temporal information
+                # like parent_id
                 {:ok, full_item} -> full_item
                 error -> error
               end
