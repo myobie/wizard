@@ -58,7 +58,8 @@ defmodule Wizard.Sharepoint.Sync do
   defp process(%{"@odata.deltaLink" => delta_link, "value" => items},
                %{drive: drive, access_token: access_token} = state)
   do
-    with {:ok, items} <- Api.Files.get_items(items, drive, access_token: access_token),
+    with items = filter_items(items),
+      {:ok, items} <- Api.Files.get_items(items, drive, access_token: access_token),
       :ok <- process_items(items, drive),
       {:ok, drive} <- Sharepoint.update_drive(drive, delta_link: delta_link)
     do
@@ -72,7 +73,8 @@ defmodule Wizard.Sharepoint.Sync do
   defp process(%{"@odata.nextLink" => next_link, "value" => items},
                %{drive: drive, access_token: access_token} = state)
   do
-    with {:ok, items} <- Api.Files.get_items(items, drive, access_token: access_token),
+    with items = filter_items(items),
+      {:ok, items} <- Api.Files.get_items(items, drive, access_token: access_token),
       :ok <- process_items(items, drive)
     do
       %{state | next_link: next_link, delta_link: nil}
@@ -86,4 +88,12 @@ defmodule Wizard.Sharepoint.Sync do
     Logger.debug("processing #{length(infos)} items for drive #{drive.id}")
     Sharepoint.upsert_or_delete_remote_items(infos, drive: drive)
   end
+
+  @app_regex ~r{\.app/Contents/}
+
+  defp filter_items(infos),
+    do: Enum.filter(infos, &keep_item/1)
+
+  defp keep_item(info),
+    do: not Regex.match?(@app_regex, Map.get(info, "webUrl", ""))
 end
