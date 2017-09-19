@@ -58,6 +58,11 @@ defmodule Wizard.Sharepoint.Api.Files do
     "#{drive_url(drive)}/root:/:/delta"
   end
 
+  @spec reset_delta_url(Drive.t) :: String.t
+  def reset_delta_url(drive) do
+    "#{drive_url(drive)}/root/view.delta(token='latest')"
+  end
+
   @spec drive_url(Drive.t) :: String.t
   defp drive_url(%Drive{remote_id: drive_id,
                         site: %{service: %{endpoint_uri: endpoint_uri}}})

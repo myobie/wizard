@@ -48,6 +48,11 @@ defmodule Wizard.Sharepoint.Sync do
     |> fetch()
   end
 
+  defp process({:error, :reset_delta_url}, %{drive: drive} = state) do
+    delta_link = Api.Files.reset_delta_url(drive)
+    %{state | delta_link: delta_link}
+  end
+
   defp process({:error, error}, state) do
     %{state | error: error, done: true} # NOTE: done
   end

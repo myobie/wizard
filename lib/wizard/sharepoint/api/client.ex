@@ -115,6 +115,14 @@ defmodule Wizard.Sharepoint.Api.Client do
         Logger.debug inspect({:response, response})
         IO.puts("Maybe the access_token has expired")
         {:error, :unauthorized}
+      {:ok, %HTTPoison.Response{status_code: 410, body: body} = response} ->
+        case Poison.decode(body) do
+          {:ok, %{"error" => %{"code" => "resyncRequired"}}} ->
+            {:error, :reset_delta_url}
+          _ ->
+            Logger.debug inspect({:response, response})
+            {:error, :unsuccessful_response}
+        end
       {:ok, response} ->
         Logger.debug inspect(response)
         {:error, :unsuccessful_response}
