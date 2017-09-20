@@ -69,7 +69,7 @@ defmodule Wizard.RemoteStorage.SasToken do
 
   def new([canonicalized_resource: canonicalized_resource, permissions: permissions, resource_type: resource_type]) do
     starts_at = Timex.now()
-                |> Timex.shift(minutes: -5)
+                |> Timex.shift(minutes: -10)
                 |> Map.put(:microsecond, {0,0})
                 |> Timex.format!(@format)
     expires_at = Timex.now()

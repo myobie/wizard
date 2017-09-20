@@ -33,6 +33,10 @@ defmodule Wizard.RemoteStorage.Putter do
     case request(to_string(uri), local_path) do
       {:ok, %HTTPoison.Response{status_code: 201}} ->
         {:ok, %Upload{remote_path: remote_path, file: file}}
+      {:ok, %HTTPoison.Response{status_code: code} = response} ->
+        Logger.error "put request failed (#{code}) #{inspect response}"
+        Logger.error inspect(file)
+        {:error, :put_request_failed}
       {:error, response} ->
         Logger.error "put request failed #{inspect response}"
         Logger.error inspect(file)
