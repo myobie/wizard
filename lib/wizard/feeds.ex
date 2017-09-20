@@ -20,7 +20,7 @@ defmodule Wizard.Feeds do
   def all_events(feed_id) do
     events = from(e in Event,
                   where: e.feed_id == ^feed_id,
-                  order_by: [desc: e.updated_at],
+                  order_by: [desc: e.created_at],
                   limit: 10)
              |> Repo.all()
 

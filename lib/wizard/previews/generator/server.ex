@@ -7,7 +7,10 @@ defmodule Wizard.Previews.Generator.Server do
   alias Wizard.Previews.Generator
 
   def init(_) do
-    events = from(e in Event, where: e.preview_state == "pending")
+    events = from(e in Event,
+                  where: e.preview_state == "pending",
+                  order_by: [desc: :id],
+                  limit: 50)
              |> Repo.all()
 
     work_soon()
