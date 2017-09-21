@@ -9,7 +9,7 @@ defmodule Wizard.Previews.Generator.Server do
   def init(_) do
     events = from(e in Event,
                   where: e.preview_state == "pending",
-                  order_by: [desc: :id],
+                  order_by: [desc: :inserted_at],
                   limit: 50)
              |> Repo.all()
 
