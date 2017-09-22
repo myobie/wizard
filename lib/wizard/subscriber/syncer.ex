@@ -25,9 +25,13 @@ defmodule Wizard.Subscriber.Syncer do
     {:ok, pid}
   end
 
+  @datetime_format "{ISO:Extended:Z}"
+
   def handle_cast(:sync, %{drive: drive, access_token: access_token} = state) do
-    Sharepoint.sync(drive, access_token: access_token)
-    |> stop_message(state)
+    Logger.debug("Starting sync at #{Timex.now() |> Timex.format!(@datetime_format)}")
+    result = Sharepoint.sync(drive, access_token: access_token)
+    Logger.debug("Finished sync at #{Timex.now() |> Timex.format!(@datetime_format)} – #{inspect result}")
+    stop_message(result, state)
   end
 
   defp stop_message({:ok, _}, state), do: {:stop, :normal, state}
