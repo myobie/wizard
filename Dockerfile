@@ -39,6 +39,7 @@ RUN mix phx.digest
 COPY rel /app/rel/
 COPY priv /app/priv/
 COPY lib /app/lib/
+COPY .project_version /app/.project_version
 
 RUN mix compile
 RUN mix release --env=prod

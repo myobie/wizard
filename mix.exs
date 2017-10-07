@@ -1,9 +1,21 @@
 defmodule Wizard.Mixfile do
   use Mix.Project
 
+  def project_version do
+    case File.read("./.project_version") do
+      {:ok, data} ->
+        String.trim(data)
+      {:error, _} ->
+        if Mix.env == :dev do
+          IO.puts("Create a .project_version file to set this project's version number")
+        end
+        "0.0.0"
+    end
+  end
+
   def project do
     [app: :wizard,
-     version: "0.0.3",
+     version: project_version(),
      elixir: "~> 1.4",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: [:phoenix, :gettext] ++ Mix.compilers,
