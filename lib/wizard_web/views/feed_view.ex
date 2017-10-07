@@ -1,11 +1,24 @@
 defmodule WizardWeb.FeedView do
   use WizardWeb, :view
 
+  def format_event_type(%{type: "file.update"}), do:
+    ~E"updated a file"
+
+  def format_event_type(%{type: "file.create"}), do:
+    ~E"created a file"
+
+  def format_event_type(%{type: "file.delete"}), do:
+    ~E"deleted a file"
+
+  def format_event_type(_), do: ~E""
+
   def format_file_name(%{payload: payload}) do
     ~E"""
     <a href="<%= payload["url"] %>"><%= payload["name"] %></a>
     """
   end
+
+  def format_file_name(_), do: ~E""
 
   def format_actor(actor) do
     ~E"""
