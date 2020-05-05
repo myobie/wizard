@@ -1,0 +1,15 @@
+<ol>
+  <%= for event <- @events do %>
+    <li data-id="<%= event.id %>">
+      <%= format_actors(event.actors) %>
+      <%= format_event_type(event) %>
+      <%= format_file_name(event) %>
+
+      <%= for preview <- event.previews do %>
+        <p>
+          <img src="<%= feed_preview_path @conn, :show, @feed_id, preview.id %>">
+        </p>
+      <% end %>
+    </li>
+  <% end %>
+</ol>

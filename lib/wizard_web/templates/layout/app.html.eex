@@ -7,28 +7,26 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Hello Wizard!</title>
+    <title>Wizard!</title>
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
   </head>
 
   <body>
     <div class="container">
-      <header class="header">
-        <nav role="navigation">
-          <ul class="nav nav-pills pull-right">
-            <li><a href="http://www.phoenixframework.org/docs">Get Started</a></li>
-          </ul>
-        </nav>
-        <span class="logo"></span>
-      </header>
-
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
       <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+
+      <nav>
+        <%= if authenticated?(@conn) do %>
+          <a href="<%= authentication_path @conn, :signout %>">Sign out</a>
+        <% else %>
+          <a href="<%= authentication_path @conn, :signin %>">Sign in</a>
+        <% end %>
+      </nav>
 
       <main role="main">
         <%= render @view_module, @view_template, assigns %>
       </main>
-
     </div> <!-- /container -->
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
   </body>

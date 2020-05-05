@@ -21,9 +21,9 @@ defmodule Wizard.Schema do
   def fetch_fields(changeset, fields), do: fetch_fields([], changeset, fields)
 
   @spec fetch_fields(Keyword.t, Changeset.t, nonempty_list(atom)) :: Keyword.t
-  def fetch_fields(results, _changeset, []), do: results
+  defp fetch_fields(results, _changeset, []), do: results
 
-  def fetch_fields(results, changeset, [field | fields]) do
+  defp fetch_fields(results, changeset, [field | fields]) do
     value = case Changeset.fetch_field(changeset, field) do
       :error -> nil
       {_, v} -> v

@@ -1,11 +1,15 @@
 defmodule Wizard.Sharepoint.Drive do
   use Wizard.Schema
   alias Wizard.Sharepoint.{Drive, Site}
+  alias Wizard.Feeds.Feed
+  alias Wizard.Subscriber.Subscription
 
   @type t :: %__MODULE__{}
 
   schema "sharepoint_drives" do
     belongs_to :site, Site
+    has_one :subscription, Subscription, foreign_key: :drive_id
+    has_one :feed, Feed, foreign_key: :drive_id
 
     field :remote_id, :string
     field :name, :string
@@ -16,8 +20,9 @@ defmodule Wizard.Sharepoint.Drive do
     timestamps()
   end
 
-  @doc false
-  def changeset(%Drive{} = drive, attrs) do
+  @spec changeset(map, [site: Site.t]) :: Ecto.Changeset.t
+  @spec changeset(t, map, [site: Site.t]) :: Ecto.Changeset.t
+  def changeset(%Drive{} = drive \\ %Drive{}, attrs, [site: site]) do
     # TODO: type is an enum
 
     drive
@@ -28,6 +33,7 @@ defmodule Wizard.Sharepoint.Drive do
     |> validate_length(:delta_link, max: 2048)
     |> foreign_key_constraint(:site_id)
     |> unique_constraint(:remote_id)
+    |> put_assoc(:site, site)
   end
 
   @doc false

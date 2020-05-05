@@ -14,19 +14,14 @@ defmodule Wizard.User do
     timestamps()
   end
 
-  @doc false
-  def changeset(%User{} = user, attrs) do
+  @spec changeset(map) :: Ecto.Changeset.t
+  @spec changeset(t, map) :: Ecto.Changeset.t
+  def changeset(%User{} = user \\ %User{}, attrs) do
     user
     |> cast(attrs, [:name, :email])
     |> validate_required([:name, :email])
     |> validate_length(:name, max: 255)
     |> validate_length(:email, max: 2048)
     |> unique_constraint(:email)
-  end
-
-  @doc false
-  def on_conflict_options(%Changeset{} = changeset) do
-    changeset
-    |> fetch_fields([:name])
   end
 end

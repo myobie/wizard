@@ -3,9 +3,9 @@ defmodule Wizard.TestApiClient.Request do
 end
 
 defmodule Wizard.TestApiClient do
-  use Wizard.ApiClient
   alias Wizard.TestApiClient.Request
 
+  use Wizard.Sharepoint.Api
   @server Wizard.TestApiClient.Server
 
   def start_link,
@@ -31,6 +31,12 @@ defmodule Wizard.TestApiClient do
 
   def delete(url, opts \\ []) do
     %Request{verb: :DELETE, opts: opts, url: url}
+    |> find_match()
+    |> format_response()
+  end
+
+  def download(url, opts \\ []) do
+    %Request{verb: :GET, opts: opts, url: url}
     |> find_match()
     |> format_response()
   end

@@ -2,16 +2,18 @@ defmodule Wizard.Sharepoint do
   require Logger
 
   import Ecto.Query, warn: false
-  import Ecto.Changeset, only: [put_assoc: 3, fetch_field: 2]
+  import Ecto.Changeset, only: [fetch_field: 2]
   alias Ecto.Multi
   alias Wizard.Repo
 
-  alias Wizard.Sharepoint.{Authorization, Drive, Item, Service, Site}
-  alias Wizard.User
+  alias Wizard.{Feeds, Previews, User}
+  alias Wizard.Sharepoint.{Authorization, Drive, Events, Item, Service, Site, Sync}
   alias Wizard.Sharepoint.Api.{Authentication, Sites}
 
   @type transaction_result :: {:ok, any} | {:error, any} | {:error, any, any, any}
   @type parents :: %{optional(String.t) => Item.t}
+
+  def sync(drive, opts), do: Sync.run(drive, opts)
 
   @spec authorize_url(String.t) :: String.t
   def authorize_url(state),
@@ -21,15 +23,15 @@ defmodule Wizard.Sharepoint do
   def authorize_sharepoints(code) do
     case Authentication.authorize_sharepoints(code) do
       {:ok, user_info, services_info, authorizations_info} ->
-        insert_user_and_services(user_info, services_info, authorizations_info)
+        upsert_user_and_services(user_info, services_info, authorizations_info)
       error ->
         error
     end
   end
 
-  @spec insert_user_and_services(map, [map], [map]) :: transaction_result
-  def insert_user_and_services(user_info, services_info, authorizations_info) do
-    new_user_and_services(user_info, services_info, authorizations_info)
+  @spec upsert_user_and_services(map, [map], [map]) :: transaction_result
+  def upsert_user_and_services(user_info, services_info, authorizations_info) do
+    build_upsert_user_and_services(user_info, services_info, authorizations_info)
     |> Repo.transaction()
   end
 
@@ -72,18 +74,38 @@ defmodule Wizard.Sharepoint do
     end
   end
 
-  @spec insert_site(map, [service: Service.t]) :: {:ok, Site.t} | {:error, Ecto.Changeset.t}
-  def insert_site(attrs, [service: service]) do
-    Site.changeset(%Site{}, attrs)
-    |> put_assoc(:service, service)
-    |> Repo.insert()
+  @site_conflict_query from s in Site,
+                         update: [set: [
+                           url: fragment("EXCLUDED.url"),
+                           hostname: fragment("EXCLUDED.hostname"),
+                           title: fragment("EXCLUDED.title"),
+                           description: fragment("EXCLUDED.description")
+                         ]]
+
+  @site_conflict_options [on_conflict: @site_conflict_query,
+                          conflict_target: :remote_id]
+
+  @spec upsert_site(map, [service: Service.t]) :: {:ok, Site.t} | {:error, Ecto.Changeset.t}
+  def upsert_site(attrs, [service: service]) do
+    Site.changeset(attrs, service: service)
+    |> Repo.insert(@site_conflict_options)
   end
 
-  @spec insert_drive(map, [site: Site.t]) :: {:ok, Drive.t} | {:error, Ecto.Changeset.t}
-  def insert_drive(attrs, [site: site]) do
-    Drive.changeset(%Drive{}, attrs)
-    |> put_assoc(:site, site)
-    |> Repo.insert()
+  @drive_conflict_query from d in Drive,
+                          update: [set: [
+                            name: fragment("EXCLUDED.name"),
+                            type: fragment("EXCLUDED.type"),
+                            url: fragment("EXCLUDED.url"),
+                            delta_link: fragment("EXCLUDED.delta_link"),
+                          ]]
+
+  @drive_conflict_options [on_conflict: @drive_conflict_query,
+                           conflict_target: :remote_id]
+
+  @spec upsert_drive(map, [site: Site.t]) :: {:ok, Drive.t} | {:error, Ecto.Changeset.t}
+  def upsert_drive(attrs, [site: site]) do
+    Drive.changeset(attrs, site: site)
+    |> Repo.insert(@drive_conflict_options)
   end
 
   @spec update_drive(Drive.t, [delta_link: String.t]) :: {:ok, Drive.t} | {:error, Ecto.Changeset.t}
@@ -93,21 +115,30 @@ defmodule Wizard.Sharepoint do
     |> Repo.update()
   end
 
-  @user_conflict_options [on_conflict: :replace_all,
+  @user_conflict_query from u in User,
+                         update: [set: [
+                           name: fragment("EXCLUDED.name")
+                         ]]
+
+  @user_conflict_options [on_conflict: @user_conflict_query,
                           conflict_target: :email]
 
-  defp insert_user(multi, user_info) do
-    changeset = User.changeset(%User{}, user_info)
-
+  defp upsert_user(multi, user_info) do
+    changeset = User.changeset(user_info)
     Multi.insert(multi, :user, changeset, @user_conflict_options)
   end
 
-  @service_conflict_options [on_conflict: :replace_all,
+  @service_conflict_query from s in Service,
+                            update: [set: [
+                              title: fragment("EXCLUDED.title")
+                            ]]
+
+  @service_conflict_options [on_conflict: @service_conflict_query,
                              conflict_target: :resource_id]
 
-  @spec insert_services([map]) :: {:ok, [Service.t]} | {:error, any}
-  defp insert_services(infos) do
-    case Multi.new |> insert_services(infos) |> Repo.transaction() do
+  @spec upsert_services([map]) :: {:ok, [Service.t]} | {:error, any}
+  defp upsert_services(infos) do
+    case Multi.new |> upsert_services(infos) |> Repo.transaction() do
       {:ok, changes} ->
         services = for {{:service, _}, service} <- changes, do: service
         {:ok, services}
@@ -116,22 +147,22 @@ defmodule Wizard.Sharepoint do
     end
   end
 
-  @spec insert_services(Multi.t, [map]) :: Multi.t
-  defp insert_services(multi, [info | infos]) do
-    changeset = Service.changeset(%Service{}, info)
+  @spec upsert_services(Multi.t, [map]) :: Multi.t
+  defp upsert_services(multi, [info | infos]) do
+    changeset = Service.changeset(info)
     {_, resource_id} = fetch_field(changeset, :resource_id)
     name = {:service, resource_id}
 
     multi
     |> Multi.insert(name, changeset, @service_conflict_options)
-    |> insert_services(infos)
+    |> upsert_services(infos)
   end
 
-  defp insert_services(multi, []), do: multi
+  defp upsert_services(multi, []), do: multi
 
-  @spec insert_authorizations(%{services: [Service.t], user: User.t}, [map]) :: {:ok, [Authorization.t]} | {:error, any}
-  defp insert_authorizations(%{services: services, user: user}, infos) do
-    case Multi.new |> insert_authorizations(user, services, infos) |> Repo.transaction() do
+  @spec upsert_authorizations(%{services: [Service.t], user: User.t}, [map]) :: {:ok, [Authorization.t]} | {:error, any}
+  defp upsert_authorizations(%{services: services, user: user}, infos) do
+    case Multi.new |> upsert_authorizations(user, services, infos) |> Repo.transaction() do
       {:ok, changes} ->
         auths = for {{:authorization, _}, authorization} <- changes, do: authorization
         {:ok, auths}
@@ -140,12 +171,18 @@ defmodule Wizard.Sharepoint do
     end
   end
 
-  @authorization_conflict_options [on_conflict: :replace_all,
+  @authorization_conflict_query from a in Authorization,
+                                  update: [set: [
+                                    access_token: fragment("EXCLUDED.access_token"),
+                                    refresh_token: fragment("EXCLUDED.refresh_token")
+                                  ]]
+
+  @authorization_conflict_options [on_conflict: @authorization_conflict_query,
                                    conflict_target: [:user_id, :service_id]]
 
-  @spec insert_authorizations(Multi.t, User.t, [Service.t], [map]) :: Multi.t
-  defp insert_authorizations(multi, user, services, [info | infos]) do
-    case Enum.find(services, &(&1.resource_id == info[:resource_id])) do
+  @spec upsert_authorizations(Multi.t, User.t, [Service.t], [map]) :: Multi.t
+  defp upsert_authorizations(multi, user, services, [info | infos]) do
+    case Enum.find(services, &(&1.resource_id == Map.get(info, :resource_id))) do
       nil ->
         Multi.error(multi,
                     {:authorization, SecureRandom.hex()},
@@ -153,84 +190,151 @@ defmodule Wizard.Sharepoint do
       service ->
         name = {:authorization, service.resource_id}
 
-        changeset = Authorization.changeset(%Authorization{}, info)
-        |> put_assoc(:user, user)
-        |> put_assoc(:service, service)
+        changeset = Authorization.changeset(info, user: user, service: service)
 
         multi
         |> Multi.insert(name, changeset, @authorization_conflict_options)
-        |> insert_authorizations(user, services, infos)
+        |> upsert_authorizations(user, services, infos)
     end
   end
 
-  defp insert_authorizations(multi, _, _, []), do: multi
+  defp upsert_authorizations(multi, _, _, []), do: multi
 
-  @spec new_user_and_services(map, [map], [map]) :: Multi.t
-  defp new_user_and_services(user_info, services_info, authorizations_info) do
+  @spec build_upsert_user_and_services(map, [map], [map]) :: Multi.t
+  defp build_upsert_user_and_services(user_info, services_info, authorizations_info) do
     Multi.new
-    |> insert_user(user_info)
-    |> Multi.run(:services, fn _ -> insert_services(services_info) end)
-    |> Multi.run(:authorizations, &(insert_authorizations(&1, authorizations_info)))
+    |> upsert_user(user_info)
+    |> Multi.run(:services, fn _ -> upsert_services(services_info) end)
+    |> Multi.run(:authorizations, &(upsert_authorizations(&1, authorizations_info)))
   end
 
-  @spec item_changeset(map, [drive: Drive.t, parent: Item.t | nil]) :: Ecto.Changeset.t
-  defp item_changeset(attrs, [drive: drive, parent: nil]) do
-    Item.changeset(%Item{}, attrs)
-    |> put_assoc(:drive, drive)
-  end
-
-  defp item_changeset(attrs, [drive: drive, parent: parent]) do
-    Item.changeset(%Item{}, attrs)
-    |> put_assoc(:drive, drive)
-    |> put_assoc(:parent, parent)
-  end
-
-  @spec insert_remote_item(Multi.t, map, [drive: Drive.t, parents: parents]) :: Multi.t
-  def insert_remote_item(multi, info, [drive: drive, parents: parents]) do
+  @spec upsert_remote_item(map, [drive: Drive.t, parents: parents]) :: {:ok, any, parents} | {:error, any} | {:error, any, any, any}
+  def upsert_remote_item(info, [drive: drive, parents: parents]) do
     attrs = Item.parse_remote(info)
 
-    if is_nil(attrs.parent_remote_id) do
-      insert_item(multi, attrs, drive: drive, parent: nil)
-    else
-      case Map.fetch(parents, attrs.parent_remote_id) do
-        {:ok, parent} ->
-          insert_item(multi, attrs, drive: drive, parent: parent)
-        :error ->
-          Multi.run(multi, {:item, :insert, attrs.remote_id}, fn m ->
-            parent = Map.get(m, {:item, :insert, attrs.parent_remote_id})
-            if is_nil(parent) do
-              Logger.error("couldn't find a parent for #{inspect(attrs)}")
-              {:error, :missing_parent_record}
-            else
-              insert_item(attrs, drive: drive, parent: parent)
-            end
-          end)
-      end
+    res = Multi.new
+          |> insert_user_for_item_if_not_exists(attrs)
+          |> upsert_item_with_parent(attrs, drive: drive, parents: parents)
+          |> upsert_item_event(drive: drive)
+          |> Repo.transaction()
+
+    case res do
+      {:ok, %{item: item} = result} ->
+        {:ok, result, Map.put(parents, item.remote_id, item)}
+      error ->
+        error
     end
   end
 
-  @item_conflict_options [on_conflict: :replace_all,
-                          conflict_target: [:remote_id, :drive_id]]
+  @other_user_conflict_query from u in User,
+                               update: [set: [
+                                 name: fragment("EXCLUDED.name")
+                               ]]
 
-  @spec insert_item(map, [drive: Drive.t, parent: Item.t]) :: {:ok, Item.t} | {:error, Ecto.Changeset.t}
-  def insert_item(attrs, [drive: drive, parent: parent]) do
-    attrs
-    |> item_changeset(drive: drive, parent: parent)
-    |> Repo.insert(@item_conflict_options)
+  @other_user_conflict_options [on_conflict: @other_user_conflict_query,
+                                conflict_target: :email,
+                                returning: true]
+
+  @spec insert_user_for_item_if_not_exists(Multi.t, map) :: Multi.t
+  defp insert_user_for_item_if_not_exists(multi, %{user: nil}),
+    do: multi
+
+  defp insert_user_for_item_if_not_exists(multi, %{user: user_attrs}) do
+    Multi.run(multi, :user, fn _ ->
+      User.changeset(user_attrs)
+      |> Repo.insert(@other_user_conflict_options)
+    end)
   end
 
-  @spec insert_item(Multi.t, map, [drive: Drive.t, parent: Item.t]) :: Multi.t
-  def insert_item(multi, attrs, [drive: drive, parent: parent]) do
-    changeset = attrs
-                |> item_changeset(drive: drive, parent: parent)
+  @spec upsert_item_with_parent(Multi.t, map, [drive: Drive.t, parents: parents]) :: Multi.t
+  defp upsert_item_with_parent(multi, %{parent_remote_id: nil} = item_attrs, [drive: drive, parents: _parents]) do
+    multi
+    |> upsert_item(item_attrs, drive: drive)
+  end
 
-    case fetch_field(changeset, :remote_id) do
+  defp upsert_item_with_parent(multi, item_attrs, [drive: drive, parents: parents]) do
+    case Map.fetch(parents, item_attrs.parent_remote_id) do
+      {:ok, parent} ->
+        multi
+        |> upsert_item(item_attrs, drive: drive, parent: parent)
       :error ->
+        Logger.error "cannot find parent for #{inspect({:item, item_attrs})}"
+        #
+        # multi
+        # |> Multi.error(:item, :cannot_find_parent_for_item)
+        #
+        # FIXME: for now, we are going to skip this problem,
+        # because there is some file that is hitting this point
+        #
         multi
-        |> Multi.error({:item, SecureRandom.hex()}, :missing_item_remote_id)
-      {_, remote_id} ->
-        multi
-        |> Multi.insert({:item, :insert, remote_id}, changeset, @item_conflict_options)
+        |> upsert_item(item_attrs, drive: drive)
+    end
+  end
+
+  @spec item_changeset(map, [drive: Drive.t, parent: Item.t] | [drive: Drive.t]) :: Ecto.Changeset.t
+  defp item_changeset(attrs, [drive: drive]),
+    do: Item.changeset(attrs, drive: drive)
+
+  defp item_changeset(attrs, [drive: drive, parent: parent]),
+    do: Item.changeset(attrs, drive: drive, parent: parent)
+
+  @item_conflict_query from i in Item,
+                         update: [set: [
+                           name: fragment("EXCLUDED.name"),
+                           type: fragment("EXCLUDED.type"),
+                           last_modified_at: fragment("EXCLUDED.last_modified_at"),
+                           size: fragment("EXCLUDED.size"),
+                           url: fragment("EXCLUDED.url"),
+                           parent_id: fragment("EXCLUDED.parent_id"),
+                           updated_at: fragment("EXCLUDED.inserted_at")
+                         ]]
+
+  @item_conflict_options [on_conflict: @item_conflict_query,
+                          conflict_target: [:remote_id, :drive_id],
+                          returning: true]
+
+  @spec upsert_item(Multi.t, map, [drive: Drive.t, parent: Item.t] | [drive: Drive.t]) :: Multi.t
+  defp upsert_item(multi, attrs, opts) do
+    Multi.run(multi, :item, fn _ ->
+      item_changeset(attrs, opts)
+      |> Repo.insert(@item_conflict_options)
+    end)
+  end
+
+  @spec upsert_item_event(Multi.t, [drive: Drive.t]) :: Multi.t
+  defp upsert_item_event(multi, [drive: drive]) do
+    Multi.run(multi, :event, &upsert_item_event_multi_body(&1, drive))
+  end
+
+  defp upsert_item_event_multi_body(%{item: item, user: user}, %Drive{} = drive) do
+    if Events.should_emit_event?(item, user) do
+      Logger.debug "should emit event for item #{inspect item}"
+      item_event_type(item)
+      |> Events.prepare_item_event(item, user)
+      |> Keyword.merge([feed: drive.feed])
+      |> Feeds.upsert_event()
+      |> notify_preview_generator()
+    else
+      Logger.debug "should not emit event for item #{inspect item}"
+      {:ok, nil}
+    end
+  end
+  defp upsert_item_event_multi_body(_, _), do: {:ok, nil}
+
+  defp notify_preview_generator({:ok, event}) do
+    Logger.debug "notifying the generator process..."
+    Previews.Generator.process_later(event)
+    {:ok, event}
+  end
+  defp notify_preview_generator(error), do: error
+
+  @spec item_event_type(Item.t) :: :create | :update | :delete
+  defp item_event_type(%Item{} = item) do
+    cond do
+      not is_nil(item.deleted_at) -> :delete
+      item.updated_at > item.inserted_at -> :update
+      item.updated_at == item.inserted_at -> :create
+      true -> :create # NOTE: what should we do here?
     end
   end
 
@@ -251,22 +355,22 @@ defmodule Wizard.Sharepoint do
     for item <- items, into: %{}, do: {item.remote_id, item}
   end
 
-  @spec insert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result
-  def insert_or_delete_remote_items(infos, [drive: drive]) do
+  @spec upsert_or_delete_remote_items([map], [drive: Drive.t]) :: transaction_result
+  def upsert_or_delete_remote_items(infos, [drive: drive]) do
     deletes = for info <- infos, Map.has_key?(info, "deleted"), do: info
-    inserts = infos -- deletes
-    parents = discover_parents(inserts, drive: drive)
+    upserts = infos -- deletes
+    parents = discover_parents(upserts, drive: drive)
 
-    Multi.new
-    |> delete_remote_items(deletes, drive: drive)
-    |> insert_remote_items(inserts, drive: drive, parents: parents)
-    |> Repo.transaction()
+    delete_remote_items(deletes, drive: drive)
+    upsert_remote_items(upserts, drive: drive, parents: parents)
   end
 
-  @spec delete_remote_items(Multi.t, [map], [drive: Drive.t]) :: Multi.t
-  def delete_remote_items(multi, [], _), do: multi
+  @spec delete_remote_items([map], [drive: Drive.t]) :: {integer, nil | [term]}
+  defp delete_remote_items([], _), do: {0, []}
 
-  def delete_remote_items(multi, infos, [drive: %{id: drive_id}]) do
+  # TODO: loop through and delete each one so we can do an
+  # event for it after determining how to know the actor
+  defp delete_remote_items(infos, [drive: %{id: drive_id}]) do
     now = DateTime.utc_now()
     remote_ids = for info <- infos, Map.has_key?(info, "id"), do: info["id"]
     query = from i in Item,
@@ -274,16 +378,20 @@ defmodule Wizard.Sharepoint do
               where: i.drive_id == ^drive_id,
               update: [set: [deleted_at: ^now]]
 
-    multi
-    |> Multi.update_all(:deletes, query, [])
+    Repo.update_all(query, [])
   end
 
-  @spec insert_remote_items(Multi.t, [map], [drive: Drive.t, parents: parents]) :: Multi.t
-  def insert_remote_items(multi, [info | infos], [drive: drive, parents: parents]) do
-    multi
-    |> insert_remote_item(info, drive: drive, parents: parents)
-    |> insert_remote_items(infos, drive: drive, parents: parents) # NOTE: recurse
+  @spec upsert_remote_items([map], [drive: Drive.t, parents: parents]) :: :ok | {:error, any}
+  defp upsert_remote_items([info | infos], [drive: drive, parents: parents]) do
+    case upsert_remote_item(info, drive: drive, parents: parents) do
+      {:ok, _, parents} ->
+        upsert_remote_items(infos, drive: drive, parents: parents) # NOTE: recurse
+      {:error, _} = error ->
+        error
+      {:error, name, msg, info} ->
+        {:error, {name, msg, info}}
+    end
   end
 
-  def insert_remote_items(multi, [], [drive: _drive, parents: _parents]), do: multi # NOTE: done
+  defp upsert_remote_items([], _), do: :ok # NOTE: done
 end

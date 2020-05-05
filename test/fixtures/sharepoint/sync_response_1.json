@@ -110,7 +110,7 @@
     "id":"item-id-3",
     "lastModifiedDateTime@odata.type":"#DateTimeOffset",
     "lastModifiedDateTime":"2017-03-30T17:55:17Z",
-    "name":"cloud.pdf",
+    "name":"cloud.sketch",
     "parentReference":{
       "@odata.type":"#oneDrive.itemReference",
       "driveId":"b!example-drive-id",
@@ -118,7 +118,7 @@
       "id":"item-id-2",
       "path":"/drives/b!example-drive-id/root:/Folder1"
     },
-    "webUrl":"https://sharepoint.example.com/teams/example/Shared%20Documents/Folder1/cloud.pdf",
+    "webUrl":"https://sharepoint.example.com/teams/example/Shared%20Documents/Folder1/cloud.sketch",
     "file":{
       "@odata.type":"#oneDrive.file",
       "hashes":{

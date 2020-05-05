@@ -15,6 +15,7 @@ defmodule WizardWeb.Router do
 
   pipeline :aad_auth do
     plug :fetch_session
+    plug :fetch_flash
   end
 
   scope "/", WizardWeb do
@@ -22,7 +23,12 @@ defmodule WizardWeb.Router do
 
     get "/", PageController, :index
 
+    resources "/feeds", FeedController do
+      resources "/previews", PreviewController
+    end
+
     get "/signin", AuthenticationController, :signin
+    get "/signout", AuthenticationController, :signout
   end
 
   scope "/notifications", WizardWeb do

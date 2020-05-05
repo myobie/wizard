@@ -1,9 +1,21 @@
 defmodule Wizard.Mixfile do
   use Mix.Project
 
+  def project_version do
+    case File.read("./.project_version") do
+      {:ok, data} ->
+        String.trim(data)
+      {:error, _} ->
+        if Mix.env == :dev do
+          IO.puts("Create a .project_version file to set this project's version number")
+        end
+        "0.0.0"
+    end
+  end
+
   def project do
     [app: :wizard,
-     version: "0.0.1",
+     version: project_version(),
      elixir: "~> 1.4",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: [:phoenix, :gettext] ++ Mix.compilers,
@@ -31,19 +43,23 @@ defmodule Wizard.Mixfile do
   defp deps do
     [{:phoenix, "~> 1.3"},
      {:phoenix_pubsub, "~> 1.0"},
-     {:ecto, "~> 2.1.6"},
+     {:ecto, "2.2.0-rc.0", override: true},
      {:phoenix_ecto, "~> 3.2"},
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 2.6"},
-     {:phoenix_live_reload, "~> 1.0", only: :dev},
      {:gettext, "~> 0.11"},
      {:cowboy, "~> 1.0"},
      {:secure_random, "~> 0.5"},
      {:httpoison, "~> 0.13"},
-     {:guardian, "~> 0.14"},
      {:jose, "~> 1.8"},
      {:timex, "~> 3.0"},
-     {:ex_machina, "~> 2.0", only: :test},
+     {:download, "~> 0.0.4"},
+     {:imagineer, "~> 0.3.0"},
+     {:flow, "~> 0.12.0"},
+     {:guardian, "~> 1.0-beta"},
+     {:phoenix_live_reload, "~> 1.0", only: :dev},
+     {:distillery, github: "bitwalker/distillery", runtime: false},
+     {:ex_machina, git: "https://github.com/myobie/ex_machina.git", only: :test},
      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
      {:quick_alias, "~> 0.1.0", only: :dev, runtime: false}]
   end

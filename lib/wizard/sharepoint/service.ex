@@ -15,7 +15,9 @@ defmodule Wizard.Sharepoint.Service do
     timestamps()
   end
 
-  def changeset(%Service{} = service, attrs) do
+  @spec changeset(map) :: Ecto.Changeset.t
+  @spec changeset(t, map) :: Ecto.Changeset.t
+  def changeset(%Service{} = service \\ %Service{}, attrs) do
     service
     |> cast(attrs, [:resource_id, :endpoint_uri, :title])
     |> validate_required([:resource_id, :endpoint_uri, :title])

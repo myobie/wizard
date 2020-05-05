@@ -1,8 +1,6 @@
 defmodule Wizard.Sharepoint.Api.Authentication do
   require Logger
-  alias Wizard.ApiClient
-
-  @api_client Application.get_env(:wizard, :sharepoint_api_client)
+  alias Wizard.Sharepoint.Api
 
   @client_id Application.fetch_env!(:wizard, :aad_client_id)
   @client_secret Application.fetch_env!(:wizard, :aad_client_secret)
@@ -94,7 +92,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
 
   @spec discover_sharepoint_services(String.t) :: {:ok, [map]} | {:error, atom}
   defp discover_sharepoint_services(token) do
-    case @api_client.get(@services_url, access_token: token) do
+    case Api.client.get(@services_url, access_token: token) do
       {:ok, %{"value" => services}} ->
         services = for info <- services, is_sharepoint_service?(info) do
           %{resource_id: info["serviceResourceId"],
@@ -108,9 +106,9 @@ defmodule Wizard.Sharepoint.Api.Authentication do
     end
   end
 
-  @spec get_token([code: String.t, resource: String.t] | [refresh_token: String.t, resource: String.t]) :: ApiClient.result
+  @spec get_token([code: String.t, resource: String.t] | [refresh_token: String.t, resource: String.t]) :: Api.result
   defp get_token([refresh_token: refresh_token, resource: resource]) do
-    @api_client.post_form @token_url, %{
+    Api.client.post_form @token_url, %{
       client_id: @client_id,
       client_secret: @client_secret,
       redirect_uri: @redirect_url,
@@ -121,7 +119,7 @@ defmodule Wizard.Sharepoint.Api.Authentication do
   end
 
   defp get_token([code: code, resource: resource]) do
-    @api_client.post_form @token_url, %{
+    Api.client.post_form @token_url, %{
       client_id: @client_id,
       client_secret: @client_secret,
       redirect_uri: @redirect_url,

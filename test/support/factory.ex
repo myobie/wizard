@@ -79,4 +79,23 @@ defmodule Wizard.Factory do
       drive: build(:sharepoint_drive)
     }
   end
+
+  def feed_factory do
+    %Wizard.Feeds.Feed{
+      drive: build(:sharepoint_drive)
+    }
+  end
+
+  def event_factory do
+    %Wizard.Feeds.Event{
+      feed: build(:feed),
+      type: "file.create",
+      actor_ids: [1],
+      subject_id: 1,
+      subject_type: "file",
+      payload: %{
+        summary: "created a new file"
+      }
+    }
+  end
 end
